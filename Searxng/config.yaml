@@ -1,5 +1,5 @@
 name: "SearXNG"
-version: "1.1.0"
+version: "1.2.0"
 slug: "searxng"
 description: "Privacy-respecting metasearch engine, reachable at your own LAN hostname instead of through HA ingress"
 url: "https://github.com/Rog294super/Home-Assistant-APP-Searxng"
@@ -7,6 +7,7 @@ arch:
   - aarch64
   - amd64
 init: false
+hassio_api: true
 
 # host_network is the key setting that gets you away from the
 # "homeassistant.local:8123/api/hassio_ingress/xxxx/" style path.
@@ -22,6 +23,8 @@ webui: "[PROTO:http]://[HOST]:[PORT:18080]"
 
 boot: auto
 startup: services
+services:
+  - mqtt:need
 
 # /data and the app's own config directory are the persistent storage
 # HA gives every app. We use /data to remember the auto-generated
@@ -42,6 +45,24 @@ options:
   safesearch: 0
   image_proxy: true
 
+  # SearXNG's authenticated Prometheus metrics endpoint. Disable this when
+  # entity registration is not needed.
+  enable_metrics: true
+
+  # Home Assistant entity registration options
+  enable_stats_entities: true
+
+  # MQTT Discovery is configured automatically through the HAOS MQTT service.
+  # The service supplies broker host, port, username, and password.
+  enable_mqtt_discovery: true
+  mqtt_discovery_prefix: "homeassistant"
+  mqtt_base_topic: "searxng"
+
+  # Explicitly disabled engines. An empty list preserves the legacy
+  # engines configuration below for existing installations.
+  disabled_engines: []
+
+  # Legacy configuration retained for backwards compatibility.
   engines:
     google: true
     bing: true
@@ -65,6 +86,16 @@ schema:
   autocomplete: str
   safesearch: int(0,2)
   image_proxy: bool
+  enable_metrics: bool
+
+  enable_stats_entities: bool
+  
+  enable_mqtt_discovery: bool
+  mqtt_discovery_prefix: str
+  mqtt_base_topic: str
+
+  disabled_engines:
+    - str
 
   engines:
     google: bool
