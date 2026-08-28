@@ -34,6 +34,34 @@ configuration:
     description: >
       Laat externe afbeeldingen via SearXNG verlopen.
 
+  enable_metrics:
+    name: Metrics-eindpunt inschakelen
+    description: Schakel het beveiligde metrics-eindpunt in dat door statistiekentiteiten wordt gebruikt.
+
+  enable_stats_entities:
+    name: inschakelen statistieken entiteit.
+    description: Schakel dit in voor sensors met statistieken over de searxng app.
+
+  enable_mqtt_discovery:
+    name: MQTT Discovery inschakelen
+    description: Registreer statistieksensors via MQTT Discovery. Een MQTT-broker is vereist.
+
+  mqtt_discovery_prefix:
+    name: MQTT Discovery-prefix
+    description: MQTT Discovery-prefix van Home Assistant, normaal homeassistant.
+
+  mqtt_base_topic:
+    name: MQTT-state-topicprefix
+    description: Prefix voor SearXNG state-, attributen- en beschikbaarheidstopics.
+
+  disabled_engines:
+    name: Uitgeschakelde Zoekmachines
+    description: >
+      De hier vermelde zoekmachines zijn standaard uitgeschakeld voor gebruikers. 
+      Gebruikers kunnen ze inschakelen via de voorkeuren knop in de browser.
+      De hier vermelde zoekmachines mogen niet worden ingeschakeld bij optie zoekmachines, die onder deze optie staat.
+      De zoekmachine-opties worden op zijn vroegst in versie 1.4.0 afgeschaft.
+
   engines:
     name: Zoekmachines
     description: >
