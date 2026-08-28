@@ -1,5 +1,11 @@
 # SearXNG Home Assistant app
 
+[![GitHub Release][releases-shield]][releases]
+![Project Stage][project-stage-shield]
+[![License][license-shield]](LICENSE.md)
+
+![Project Maintenance][maintenance-shield]
+
 [![Open your Home Assistant instance and show the add app repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FRog294super%2FHome-Assistant-APP-Searxng)
 
 A Home Assistant OS app that runs the official [**SearXNG**](https://github.com/searxng/searxng) metasearch engine while staying as close as possible to the upstream project.
@@ -13,6 +19,7 @@ This app is designed to provide a lightweight, easy-to-maintain integration for 
 * Automatically generates and persists a secure `secret_key`.
 * Keeps configuration as close as possible to the upstream defaults.
 * Supports enabling and disabling search engines through the Home Assistant configuration.
+* **Automatic entity registration** — SearXNG statistics are registered as Home Assistant entities.
 * Designed for minimal maintenance across future SearXNG releases.
 
 ## Design Philosophy
@@ -38,7 +45,8 @@ https://github.com/Rog294super/Home-Assistant-APP-Searxng
 2. Add this repository as a custom repository.
 3. Install **SearXNG**.
 4. Configure the app.
-5. Start the app.
+5. For entities also install a MQTT broker like MQTT Mosquitto broker and configure.
+6. Start the app.
 
 ## Configuration
 
@@ -49,6 +57,10 @@ Common configuration options include:
 * Base URL
 * Instance name
 * Search engine configuration
+* **Enable Metrics** — Enable the authenticated metrics endpoint used by the SearXNG statistics monitor (default: enabled)
+* **Enable Stats Entities** — Enable automatic registration of SearXNG statistics as Home Assistant entities (default: enabled)
+
+For detailed information about entity registration and usage examples, see the [DOCS.md](searxng/DOCS.md#home-assistant-entity-registration) file.
 
 ## Project Goals
 
@@ -69,3 +81,8 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+[releases-shield]: https://img.shields.io/github/v/release/Rog294super/Home-Assistant-APP-Searxng.svg
+[project-stage-shield]: https://img.shields.io/badge/project%20stage-production%20ready-brightgreen.svg
+[license-shield]: https://img.shields.io/github/license/Rog294super/Home-Assistant-APP-Searxng.svg
+[maintenance-shield]: https://img.shields.io/maintenance/yes/2026.svg
