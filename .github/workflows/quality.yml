@@ -4,26 +4,28 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@2.0.0
+        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
         with:
-          scandir: searxng
-          additional_files: run.sh
+            scandir: Searxng
 
       - name: Run Hadolint
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
-          dockerfile: searxng/Dockerfile
+           dockerfile: Searxng/Dockerfile
 
       - name: Set up Python
-        uses: actions/setup-python@v5.6.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.x'
 
@@ -36,9 +38,9 @@ jobs:
           python - <<'PY'
           import yaml
           for path in [
-              'searxng/config.yaml',
-              'searxng/translations/en.yaml',
-              'searxng/translations/nl.yaml',
+                'Searxng/config.yaml',
+                'Searxng/translations/en.yaml',
+                'Searxng/translations/nl.yaml',
           ]:
               with open(path, 'r', encoding='utf-8') as handle:
                   yaml.safe_load(handle)
@@ -48,5 +50,5 @@ jobs:
           if find searxng -maxdepth 2 -name 'test*.py' | grep -q .; then
             python -m unittest discover -s searxng -p 'test*.py' -v
           else
-            echo 'No Python tests found under searxng; skipping unittest discovery.'
+            echo 'No Python tests found under Searxng; skipping unittest discovery.'
           fi
