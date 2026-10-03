@@ -23,6 +23,9 @@ fi
 
 PORT=$("$PYTHON" -c "import json; print(json.load(open('$OPTIONS_FILE')).get('port', 18080))")
 SECRET_KEY=$("$PYTHON" -c "import json; print(json.load(open('$OPTIONS_FILE')).get('secret_key') or '')")
+ENABLE_STATS_ENTITIES=$("$PYTHON" -c "import json; print(str(bool(json.load(open('$OPTIONS_FILE')).get('enable_stats_entities', True))).lower())")
+ENABLE_METRICS=$("$PYTHON" -c "import json; print(str(bool(json.load(open('$OPTIONS_FILE')).get('enable_metrics', True))).lower())")
+ENABLE_MQTT_DISCOVERY=$("$PYTHON" -c "import json; print(str(bool(json.load(open('$OPTIONS_FILE')).get('enable_mqtt_discovery', True))).lower())")
 
 # ---------------------------------------------------------
 # Persistent secret key — keep it stable across restarts
@@ -135,7 +138,10 @@ import json
 import os
 import sys
 
+sys.path.insert(0, "/")
+
 import yaml
+from engine_overrides import get_engine_overrides
 
 options_path, settings_path = sys.argv[1], sys.argv[2]
 
@@ -167,29 +173,16 @@ autocomplete = options.get("autocomplete")
 if autocomplete:
     settings["search"]["autocomplete"] = autocomplete
 
-disabled_engines = options.get("disabled_engines")
-
-if isinstance(disabled_engines, list) and disabled_engines:
-    print("[searxng-app] Using new disabled_engines configuration")
-    settings["engines"] = [
-        {"name": str(name), "disabled": True}
-        for name in disabled_engines
-        if name
-    ]
+engine_override = get_engine_overrides(options)
+if engine_override:
+    source, engine_settings = engine_override
+    print(f"[searxng-app] Using {source} engine configuration")
+    settings["engines"] = engine_settings
 else:
-    legacy_engines = options.get("engines")
-
-    if isinstance(legacy_engines, dict):
-        print("[searxng-app] Using legacy engines configuration")
-        settings["engines"] = [
-            {"name": str(name), "disabled": not bool(enabled)}
-            for name, enabled in legacy_engines.items()
-        ]
-    else:
-        print(
-            "[searxng-app] No engine overrides configured; "
-            "using SearXNG upstream defaults"
-        )
+    print(
+        "[searxng-app] No engine overrides configured; "
+        "using SearXNG upstream defaults"
+    )
 
 with open(settings_path, "w") as f:
     yaml.safe_dump(settings, f, sort_keys=False, allow_unicode=True)
@@ -234,7 +227,9 @@ echo "[searxng-app] SearXNG started with PID $GRANIAN_PID"
 # The monitor registers SearXNG stats as Home Assistant entities
 # ---------------------------------------------------------
 
-if command -v python3 >/dev/null 2>&1 || command -v "$PYTHON" >/dev/null 2>&1; then
+if [ "$ENABLE_STATS_ENTITIES" = "true" ] && [ "$ENABLE_METRICS" = "true" ] && \
+    [ "$ENABLE_MQTT_DISCOVERY" = "true" ] && \
+    { command -v python3 >/dev/null 2>&1 || command -v "$PYTHON" >/dev/null 2>&1; }; then
     export OPTIONS_FILE="$OPTIONS_FILE"
     
     echo "[searxng-app] Starting entity monitor service"
@@ -255,7 +250,15 @@ if command -v python3 >/dev/null 2>&1 || command -v "$PYTHON" >/dev/null 2>&1; t
     MONITOR_PID=$!
     echo "[searxng-app] Monitor supervisor started with PID $MONITOR_PID"
 else
-    echo "[searxng-app] Python not found, skipping entity monitor"
+    if [ "$ENABLE_STATS_ENTITIES" != "true" ]; then
+        echo "[searxng-app] Stats entities are disabled; skipping entity monitor"
+    elif [ "$ENABLE_METRICS" != "true" ]; then
+        echo "[searxng-app] WARNING: Stats entities need metrics; skipping entity monitor while keeping SearXNG running"
+    elif [ "$ENABLE_MQTT_DISCOVERY" != "true" ]; then
+        echo "[searxng-app] MQTT Discovery is disabled; skipping entity monitor"
+    else
+        echo "[searxng-app] Python not found, skipping entity monitor"
+    fi
     MONITOR_PID=""
 fi
 

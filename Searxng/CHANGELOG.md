@@ -2,6 +2,17 @@
 
 All notable changes to this Home Assistant SearXNG App are documented here.
 
+## 1.2.1
+
+### Added
+- Added per-category disabled-engine fields while retaining the existing
+  `disabled_engines` list and `engines` switches for compatibility.
+
+### Fixed
+- The statistics monitor no longer restarts when stats entities are disabled.
+- Disabling metrics while stats entities are enabled now skips the monitor
+  without stopping the SearXNG search service.
+
 ## 1.2.0
 
 ### Added

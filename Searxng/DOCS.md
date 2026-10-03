@@ -55,9 +55,14 @@ If you want a cleaner URL such as `http://searxng.lan/`, consider using a revers
 
 ## Configuring disabled search engines
 
-When you want a engine to be not enabled by default for clients, Enter the search engine name in the field and click ENTER.
-Don't forget to save the changes.
-For available engines check: `[Link](https://docs.searxng.org/user/configured_engines.html)`.
+The new category fields accept comma-separated SearXNG engine names, for example
+`google, bing`. They add to the existing `disabled_engines` list and `engines`
+switches; those legacy settings remain supported for existing installations.
+For available names, see the [SearXNG engine list](https://docs.searxng.org/user/configured_engines.html).
+
+The legacy `engines` and `disabled_engines` settings are planned for removal
+no earlier than version 1.4.0. Move any choices you want to keep into the
+category fields before that release.
 
 ## DEPRECATED Configuring search engines
 
@@ -100,7 +105,8 @@ This app publishes SearXNG statistics through Home Assistant MQTT Discovery. MQT
 No MQTT username, password, host, or port can be entered in the SearXNG app configuration. These values are supplied exclusively by the HAOS `mqtt:need` service. The default Discovery prefix is `homeassistant` and the state prefix is `searxng`.
 
 The statistics monitor uses the authenticated metrics endpoint. Keep **Enable
-metrics endpoint** enabled when MQTT Discovery is enabled. The app stores
+metrics endpoint** enabled when stats entities are enabled. If metrics are
+disabled, the search service keeps running and the statistics monitor is skipped. The app stores
 the metrics password separately from SearXNG's `server.secret_key`; it is
 generated automatically and is not shown in the app configuration.
 

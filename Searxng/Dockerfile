@@ -9,9 +9,11 @@ RUN /usr/local/searxng/.venv/bin/python -m ensurepip --upgrade && \
 
 COPY run.sh /run.sh
 COPY monitor.py /monitor.py
+COPY engine_overrides.py /engine_overrides.py
 
 RUN sed -i 's/\r$//' /run.sh && \
     chmod 755 /run.sh && \
-    chmod 755 /monitor.py
+    chmod 755 /monitor.py && \
+    chmod 755 /engine_overrides.py
 
 ENTRYPOINT ["/bin/sh", "/run.sh"]
