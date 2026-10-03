@@ -1,13 +1,11 @@
 name: "SearXNG"
-version: "1.2.1"
+version: "1.3.0"
 slug: "searxng"
 description: "Privacy-respecting metasearch engine, reachable at your own LAN hostname instead of through HA ingress"
 url: "https://github.com/Rog294super/Home-Assistant-APP-Searxng"
 arch:
   - aarch64
   - amd64
-init: false
-hassio_api: true
 
 # host_network is the key setting that gets you away from the
 # "homeassistant.local:8123/api/hassio_ingress/xxxx/" style path.
@@ -22,22 +20,17 @@ host_network: true
 webui: "[PROTO:http]://[HOST]:[PORT:18080]"
 
 boot: auto
-startup: services
+startup: application
 services:
-  - mqtt:need
-
-# /data and the app's own config directory are the persistent storage
-# HA gives every app. We use /data to remember the auto-generated
-# secret_key across restarts and updates.
-map:
-  - type: app_config
-    read_only: false
-
-  - type: data
-    read_only: false
+  - mqtt:want
+watchdog: "http://[HOST]:[PORT:18080]/healthz"
+breaking_versions:
+  - "1.3.0"
+  - "1.4.0"
+  - "1.5.0"
 
 options:
-  base_url: "http://searxng.local/"
+  base_url: ""
   instance_name: "SearXNG"
   port: 18080
 
@@ -58,7 +51,8 @@ options:
   mqtt_discovery_prefix: "homeassistant"
   mqtt_base_topic: "searxng"
 
-  # Additive category fields; legacy option types below stay unchanged.
+  # Per-category default-disabled engines. Use a comma-separated list of exact
+  # SearXNG engine names, for example: google, bing, wikipedia.
   disabled_engines_general: ""
   disabled_engines_images: ""
   disabled_engines_videos: ""
@@ -70,23 +64,11 @@ options:
   disabled_engines_files: ""
   disabled_engines_social_media: ""
 
-  # Explicitly disabled engines. An empty list preserves the legacy
-  # engines configuration below for existing installations.
-  disabled_engines: []
+  # Deprecated global compatibility field kept for older installs.
+  disabled_engines: ""
 
   # Legacy configuration retained for backwards compatibility.
-  engines:
-    google: true
-    bing: true
-    duckduckgo: true
-    startpage: false
-    qwant: false
-    wikipedia: true
-    github: true
-    youtube: true
-    reddit: false
-    stackoverflow: true
-    wolframalpha: false
+  engines: {}
 
 
 # Visible part with type in HAOS
@@ -95,7 +77,7 @@ schema:
   instance_name: str
   port: int(1024,65535)
 
-  autocomplete: str
+  autocomplete: list(360search|baidu|brave|dbpedia|duckduckgo|google|yandex|mwmbl|naver|seznam|sogou|startpage|stract|swisscows|quark|qwant|wikipedia)
   safesearch: int(0,2)
   image_proxy: bool
   enable_metrics: bool
@@ -117,18 +99,18 @@ schema:
   disabled_engines_files: str
   disabled_engines_social_media: str
 
-  disabled_engines:
-    - str
+  # Deprecated compatibility field.
+  disabled_engines: str
 
   engines:
-    google: bool
-    bing: bool
-    duckduckgo: bool
-    startpage: bool
-    qwant: bool
-    wikipedia: bool
-    github: bool
-    youtube: bool
-    reddit: bool
-    stackoverflow: bool
-    wolframalpha: bool
+    google: "bool?"
+    bing: "bool?"
+    duckduckgo: "bool?"
+    startpage: "bool?"
+    qwant: "bool?"
+    wikipedia: "bool?"
+    github: "bool?"
+    youtube: "bool?"
+    reddit: "bool?"
+    stackoverflow: "bool?"
+    wolframalpha: "bool?"
