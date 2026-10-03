@@ -54,6 +54,46 @@ configuration:
     name: MQTT-state-topicprefix
     description: Prefix voor SearXNG state-, attributen- en beschikbaarheidstopics.
 
+  disabled_engines_general:
+    name: Uitgeschakelde zoekmachines - Algemeen
+    description: Komma-gescheiden SearXNG-enginenamen om in de algemene categorie uit te schakelen.
+
+  disabled_engines_images:
+    name: Uitgeschakelde zoekmachines - Afbeeldingen
+    description: Komma-gescheiden SearXNG-enginenamen om in de afbeeldingscategorie uit te schakelen.
+
+  disabled_engines_videos:
+    name: Uitgeschakelde zoekmachines - Video's
+    description: Komma-gescheiden SearXNG-enginenamen om in de videocategorie uit te schakelen.
+
+  disabled_engines_news:
+    name: Uitgeschakelde zoekmachines - Nieuws
+    description: Komma-gescheiden SearXNG-enginenamen om in de nieuwscategorie uit te schakelen.
+
+  disabled_engines_maps:
+    name: Uitgeschakelde zoekmachines - Kaarten
+    description: Komma-gescheiden SearXNG-enginenamen om in de kaartencategorie uit te schakelen.
+
+  disabled_engines_music:
+    name: Uitgeschakelde zoekmachines - Muziek
+    description: Komma-gescheiden SearXNG-enginenamen om in de muziekcategorie uit te schakelen.
+
+  disabled_engines_it:
+    name: Uitgeschakelde zoekmachines - IT
+    description: Komma-gescheiden SearXNG-enginenamen om in de IT-categorie uit te schakelen.
+
+  disabled_engines_science:
+    name: Uitgeschakelde zoekmachines - Wetenschap
+    description: Komma-gescheiden SearXNG-enginenamen om in de wetenschapscategorie uit te schakelen.
+
+  disabled_engines_files:
+    name: Uitgeschakelde zoekmachines - Bestanden
+    description: Komma-gescheiden SearXNG-enginenamen om in de bestandencategorie uit te schakelen.
+
+  disabled_engines_social_media:
+    name: Uitgeschakelde zoekmachines - Sociale media
+    description: Komma-gescheiden SearXNG-enginenamen om in de socialemediacategorie uit te schakelen.
+
   disabled_engines:
     name: Uitgeschakelde Zoekmachines
     description: >

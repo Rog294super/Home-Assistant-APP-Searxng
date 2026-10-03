@@ -1,5 +1,5 @@
 name: "SearXNG"
-version: "1.2.0"
+version: "1.2.1"
 slug: "searxng"
 description: "Privacy-respecting metasearch engine, reachable at your own LAN hostname instead of through HA ingress"
 url: "https://github.com/Rog294super/Home-Assistant-APP-Searxng"
@@ -58,6 +58,18 @@ options:
   mqtt_discovery_prefix: "homeassistant"
   mqtt_base_topic: "searxng"
 
+  # Additive category fields; legacy option types below stay unchanged.
+  disabled_engines_general: ""
+  disabled_engines_images: ""
+  disabled_engines_videos: ""
+  disabled_engines_news: ""
+  disabled_engines_maps: ""
+  disabled_engines_music: ""
+  disabled_engines_it: ""
+  disabled_engines_science: ""
+  disabled_engines_files: ""
+  disabled_engines_social_media: ""
+
   # Explicitly disabled engines. An empty list preserves the legacy
   # engines configuration below for existing installations.
   disabled_engines: []
@@ -93,6 +105,17 @@ schema:
   enable_mqtt_discovery: bool
   mqtt_discovery_prefix: str
   mqtt_base_topic: str
+
+  disabled_engines_general: str
+  disabled_engines_images: str
+  disabled_engines_videos: str
+  disabled_engines_news: str
+  disabled_engines_maps: str
+  disabled_engines_music: str
+  disabled_engines_it: str
+  disabled_engines_science: str
+  disabled_engines_files: str
+  disabled_engines_social_media: str
 
   disabled_engines:
     - str

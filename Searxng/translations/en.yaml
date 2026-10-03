@@ -52,6 +52,46 @@ configuration:
     name: MQTT state topic prefix
     description: Prefix for SearXNG state, attributes, and availability topics.
 
+  disabled_engines_general:
+    name: Disabled engines - General
+    description: Comma-separated SearXNG engine names to disable in the general category.
+
+  disabled_engines_images:
+    name: Disabled engines - Images
+    description: Comma-separated SearXNG engine names to disable in the images category.
+
+  disabled_engines_videos:
+    name: Disabled engines - Videos
+    description: Comma-separated SearXNG engine names to disable in the videos category.
+
+  disabled_engines_news:
+    name: Disabled engines - News
+    description: Comma-separated SearXNG engine names to disable in the news category.
+
+  disabled_engines_maps:
+    name: Disabled engines - Maps
+    description: Comma-separated SearXNG engine names to disable in the maps category.
+
+  disabled_engines_music:
+    name: Disabled engines - Music
+    description: Comma-separated SearXNG engine names to disable in the music category.
+
+  disabled_engines_it:
+    name: Disabled engines - IT
+    description: Comma-separated SearXNG engine names to disable in the IT category.
+
+  disabled_engines_science:
+    name: Disabled engines - Science
+    description: Comma-separated SearXNG engine names to disable in the science category.
+
+  disabled_engines_files:
+    name: Disabled engines - Files
+    description: Comma-separated SearXNG engine names to disable in the files category.
+
+  disabled_engines_social_media:
+    name: Disabled engines - Social media
+    description: Comma-separated SearXNG engine names to disable in the social media category.
+
   disabled_engines:
     name: Disabled Engines
     description: >
