@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+umask 077
 
 # The image ships its own venv with python + PyYAML (SearXNG needs both to
 # load its own settings), so we reuse that interpreter instead of relying
@@ -22,176 +23,38 @@ if [ ! -f "$OPTIONS_FILE" ]; then
 fi
 
 PORT=$("$PYTHON" -c "import json; print(json.load(open('$OPTIONS_FILE')).get('port', 18080))")
-SECRET_KEY=$("$PYTHON" -c "import json; print(json.load(open('$OPTIONS_FILE')).get('secret_key') or '')")
+ENABLE_MQTT_DISCOVERY=$("$PYTHON" -c "import json; print(str(bool(json.load(open('$OPTIONS_FILE')).get('enable_mqtt_discovery', True))).lower())")
 ENABLE_STATS_ENTITIES=$("$PYTHON" -c "import json; print(str(bool(json.load(open('$OPTIONS_FILE')).get('enable_stats_entities', True))).lower())")
 ENABLE_METRICS=$("$PYTHON" -c "import json; print(str(bool(json.load(open('$OPTIONS_FILE')).get('enable_metrics', True))).lower())")
-ENABLE_MQTT_DISCOVERY=$("$PYTHON" -c "import json; print(str(bool(json.load(open('$OPTIONS_FILE')).get('enable_mqtt_discovery', True))).lower())")
 
 # ---------------------------------------------------------
 # Persistent secret key — keep it stable across restarts
 # instead of regenerating (and invalidating sessions) every boot.
 # ---------------------------------------------------------
 
-if [ -z "$SECRET_KEY" ]; then
-    if [ -f "$SECRET_FILE" ]; then
-        SECRET_KEY=$(cat "$SECRET_FILE")
-    else
-        SECRET_KEY=$(head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1)
-        echo "$SECRET_KEY" > "$SECRET_FILE"
-        echo "[searxng-app] Generated and stored a new secret_key"
-    fi
+if [ -f "$SECRET_FILE" ]; then
+    SECRET_KEY=$(cat "$SECRET_FILE")
+else
+    SECRET_KEY=$(head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1)
+    echo "$SECRET_KEY" > "$SECRET_FILE"
+    echo "[searxng-app] Generated and stored a new secret_key"
 fi
 
 if [ ! -f "$METRICS_SECRET_FILE" ]; then
     head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1 > "$METRICS_SECRET_FILE"
     echo "[searxng-app] Generated and stored a separate metrics password"
 fi
+chmod 600 "$SECRET_FILE" "$METRICS_SECRET_FILE"
 
-# ---------------------------------------------------------
-# Get the MQTT service configuration from Home Assistant Supervisor.
-# `services: mqtt:need` grants access to this endpoint; it does not inject
-# MQTT_* variables into the container automatically.
-# ---------------------------------------------------------
-
-MQTT_ENV_FILE="/tmp/searxng-mqtt.env"
-if [ -n "${SUPERVISOR_TOKEN:-}" ]; then
-    MQTT_SERVICE_LOADED=""
-    MQTT_ATTEMPT=1
-    while [ "$MQTT_ATTEMPT" -le 12 ]; do
-    SUPERVISOR_TOKEN="$SUPERVISOR_TOKEN" "$PYTHON" - "$MQTT_ENV_FILE" <<'PYEOF'
-import json
-import os
-import shlex
-import sys
-import urllib.error
-import urllib.request
-
-env_path = sys.argv[1]
-request = urllib.request.Request(
-    "http://supervisor/services/mqtt",
-    headers={
-        "Authorization": f"Bearer {os.environ['SUPERVISOR_TOKEN']}",
-        "X-Supervisor-Token": os.environ["SUPERVISOR_TOKEN"],
-        "Accept": "application/json",
-    },
-)
-try:
-    with urllib.request.urlopen(request, timeout=10) as response:
-        service = json.loads(response.read().decode("utf-8"))
-        service = service.get("data", service)
-        if not service.get("host"):
-            raise ValueError(f"Supervisor returned no MQTT host: {service}")
-    values = {
-        "MQTT_HOST": service.get("host", ""),
-        "MQTT_PORT": service.get("port", "1883"),
-        "MQTT_USER": service.get("username", ""),
-        "MQTT_PASSWORD": service.get("password", ""),
-    }
-    with open(env_path, "w") as env_file:
-        for key, value in values.items():
-            env_file.write(f"export {key}={shlex.quote(str(value))}\n")
-    print("[searxng-app] Loaded MQTT service configuration from Supervisor")
-except (OSError, urllib.error.URLError, json.JSONDecodeError, KeyError, ValueError) as error:
-    print(f"[searxng-app] WARNING: Could not load MQTT service configuration: {error}")
-PYEOF
-        if [ -s "$MQTT_ENV_FILE" ]; then
-            MQTT_SERVICE_LOADED="yes"
-            break
-        fi
-        echo "[searxng-app] MQTT service not ready; retrying ($MQTT_ATTEMPT/12)"
-        MQTT_ATTEMPT=$((MQTT_ATTEMPT + 1))
-        sleep 5
-    done
-else
-    echo "[searxng-app] WARNING: SUPERVISOR_TOKEN is missing; cannot query MQTT service"
-fi
-
-if [ -f "$MQTT_ENV_FILE" ] && [ -n "$MQTT_SERVICE_LOADED" ]; then
-    # shellcheck disable=SC1090  # path is dynamic (Supervisor-provided), 
-    # not a static file ShellCheck can resolve
-    . "$MQTT_ENV_FILE"
-else
-    echo "[searxng-app] WARNING: MQTT service configuration is unavailable"
-fi
-
-# ---------------------------------------------------------
-# Build settings.yml as a single Python dict -> YAML dump.
-#
-# This replaces the old sed-template + cat-append approach, which produced
-# TWO top-level `search:` keys whenever `autocomplete` was set (the default).
-# YAML doesn't merge duplicate keys — the second one silently won, which
-# meant `safesearch` and the JSON API (`formats`) were dropped on every
-# normal boot. Building one dict and dumping it once makes that class of
-# bug structurally impossible.
-#
-# The engines list is built from whatever keys exist under options.engines
-# in config.yaml — NOT a hardcoded list in this script. That's what used to
-# let `brave`/`wikidata` stay force-enabled here after they were removed
-# from config.yaml/schema/translations (see CHANGELOG). Now this script
-# automatically stays in sync with config.yaml with no separate list to
-# maintain or forget to update.
-# ---------------------------------------------------------
+# Settings generation contains only app options and stays independent from
+# MQTT service credentials, which the monitor retrieves directly.
 
 SECRET_KEY="$SECRET_KEY" METRICS_SECRET="$(cat "$METRICS_SECRET_FILE")" \
-    "$PYTHON" - "$OPTIONS_FILE" "$SETTINGS_FILE" <<'PYEOF'
-import json
-import os
-import sys
-
-sys.path.insert(0, "/")
-
-import yaml
-from engine_overrides import get_engine_overrides
-
-options_path, settings_path = sys.argv[1], sys.argv[2]
-
-with open(options_path) as f:
-    options = json.load(f)
-
-secret_key = os.environ["SECRET_KEY"]
-
-settings = {
-    "use_default_settings": True,
-    "general": {
-        "instance_name": options.get("instance_name") or "SearXNG",
-        "enable_metrics": bool(options.get("enable_metrics", True)),
-        "open_metrics": os.environ["METRICS_SECRET"],
-    },
-    "server": {
-        "secret_key": secret_key,
-        "base_url": options.get("base_url") or "",
-        "image_proxy": bool(options.get("image_proxy", True)),
-        "port": int(options.get("port", 18080)),
-    },
-    "search": {
-        "safesearch": int(options.get("safesearch", 0)),
-        "formats": ["html", "json"],
-    },
-}
-
-autocomplete = options.get("autocomplete")
-if autocomplete:
-    settings["search"]["autocomplete"] = autocomplete
-
-engine_override = get_engine_overrides(options)
-if engine_override:
-    source, engine_settings = engine_override
-    print(f"[searxng-app] Using {source} engine configuration")
-    settings["engines"] = engine_settings
-else:
-    print(
-        "[searxng-app] No engine overrides configured; "
-        "using SearXNG upstream defaults"
-    )
-
-with open(settings_path, "w") as f:
-    yaml.safe_dump(settings, f, sort_keys=False, allow_unicode=True)
-
-print(f"[searxng-app] Wrote {settings_path}")
-PYEOF
+    "$PYTHON" /generate_settings.py "$OPTIONS_FILE" "$SETTINGS_FILE"
+chmod 600 "$SETTINGS_FILE"
 
 echo "[searxng-app] Generated settings:"
-cat "$SETTINGS_FILE"
+sed -E 's/^([[:space:]]*(secret_key|open_metrics):).*/\1 "<redacted>"/' "$SETTINGS_FILE"
 
 export SEARXNG_SETTINGS_PATH="$SETTINGS_FILE"
 
@@ -213,7 +76,7 @@ fi
 echo "[searxng-app] Starting SearXNG on port $PORT via Granian"
 
 # Start SearXNG in the background
-"$GRANIAN" \
+SUPERVISOR_TOKEN='' "$GRANIAN" \
     --interface wsgi \
     --host 0.0.0.0 \
     --port "$PORT" \
@@ -227,6 +90,7 @@ echo "[searxng-app] SearXNG started with PID $GRANIAN_PID"
 # The monitor registers SearXNG stats as Home Assistant entities
 # ---------------------------------------------------------
 
+MONITOR_PID=""
 if [ "$ENABLE_STATS_ENTITIES" = "true" ] && [ "$ENABLE_METRICS" = "true" ] && \
     [ "$ENABLE_MQTT_DISCOVERY" = "true" ] && \
     { command -v python3 >/dev/null 2>&1 || command -v "$PYTHON" >/dev/null 2>&1; }; then
@@ -239,21 +103,14 @@ if [ "$ENABLE_STATS_ENTITIES" = "true" ] && [ "$ENABLE_METRICS" = "true" ] && \
         PYTHON_BIN="python3"
     fi
     
-    # Keep the monitor available if it exits unexpectedly.
-    (
-        while true; do
-            "$PYTHON_BIN" /monitor.py || \
-                echo "[searxng-app] Entity monitor exited; restarting in 5s"
-            sleep 5
-        done
-    ) &
+    "$PYTHON_BIN" /monitor.py &
     MONITOR_PID=$!
     echo "[searxng-app] Monitor supervisor started with PID $MONITOR_PID"
 else
     if [ "$ENABLE_STATS_ENTITIES" != "true" ]; then
         echo "[searxng-app] Stats entities are disabled; skipping entity monitor"
     elif [ "$ENABLE_METRICS" != "true" ]; then
-        echo "[searxng-app] WARNING: Stats entities need metrics; skipping entity monitor while keeping SearXNG running"
+        echo "[searxng-app] WARNING: Metrics are disabled; skipping entity monitor while keeping SearXNG running"
     elif [ "$ENABLE_MQTT_DISCOVERY" != "true" ]; then
         echo "[searxng-app] MQTT Discovery is disabled; skipping entity monitor"
     else
@@ -263,14 +120,31 @@ else
 fi
 
 # ---------------------------------------------------------
-# Wait for both services
-# If either exits, the container stops
+# Stop both child processes promptly when Supervisor stops the app.
 # ---------------------------------------------------------
 
-wait $GRANIAN_PID
+# shellcheck disable=SC2317,SC2329
+shutdown() {
+    trap - TERM INT
+    kill "$GRANIAN_PID" 2>/dev/null || true
+    if [ -n "$MONITOR_PID" ]; then
+        kill "$MONITOR_PID" 2>/dev/null || true
+    fi
+    wait "$GRANIAN_PID" 2>/dev/null || true
+    if [ -n "$MONITOR_PID" ]; then
+        wait "$MONITOR_PID" 2>/dev/null || true
+    fi
+}
+trap shutdown TERM INT
 
-if [ -n "$MONITOR_PID" ]; then
-    kill $MONITOR_PID 2>/dev/null || true
+if wait "$GRANIAN_PID"; then
+    GRANIAN_STATUS=0
+else
+    GRANIAN_STATUS=$?
 fi
-
+if [ -n "$MONITOR_PID" ]; then
+    kill "$MONITOR_PID" 2>/dev/null || true
+    wait "$MONITOR_PID" 2>/dev/null || true
+fi
 echo "[searxng-app] SearXNG service stopped"
+exit "$GRANIAN_STATUS"
