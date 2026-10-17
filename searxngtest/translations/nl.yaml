@@ -1,0 +1,142 @@
+configuration:
+  base_url:
+    name: Basis-URL
+    description: >
+      De openbare URL waarop je SearXNG-instantie bereikbaar is.
+      Voorbeeld: https://searxng.local
+
+  instance_name:
+    name: Naam van de instantie
+    description: Naam die door SearXNG wordt weergegeven.
+
+  port:
+    name: Poort
+    description: >
+      Externe poort waarop SearXNG beschikbaar is.
+      Laat een reverse proxy naar deze poort verwijzen.
+
+  autocomplete:
+    name: Autocompleteprovider
+    description: >
+      Provider die wordt gebruikt voor zoeksuggesties.
+      Beschikbare autocomplete-backends zijn:
+      "360search", "baidu", "brave", "dbpedia", "duckduckgo", "google",
+      "yandex", "mwmbl", "naver", "seznam", "sogou", "startpage",
+      "stract", "swisscows", "quark", "qwant" en "wikipedia".
+
+  safesearch:
+    name: SafeSearch
+    description: >
+      SafeSearch-niveau (0 = Uit, 1 = Gemiddeld, 2 = Strikt).
+
+  image_proxy:
+    name: Afbeeldingsproxy
+    description: >
+      Laat externe afbeeldingen via SearXNG verlopen.
+
+  enable_metrics:
+    name: Metrics-eindpunt inschakelen
+    description: Schakel het beveiligde metrics-eindpunt in dat door statistiekentiteiten wordt gebruikt.
+
+  enable_stats_entities:
+    name: inschakelen statistieken entiteit.
+    description: Schakel dit in voor sensors met statistieken over de searxng app.
+
+  enable_mqtt_discovery:
+    name: MQTT Discovery inschakelen
+    description: Registreer statistieksensors via MQTT Discovery. Een MQTT-broker is vereist.
+
+  mqtt_discovery_prefix:
+    name: MQTT Discovery-prefix
+    description: MQTT Discovery-prefix van Home Assistant, normaal homeassistant.
+
+  mqtt_base_topic:
+    name: MQTT-state-topicprefix
+    description: Prefix voor SearXNG state-, attributen- en beschikbaarheidstopics.
+
+  disabled_engines_general:
+    name: Uitgeschakelde zoekmachines - Algemeen
+    description: Komma-gescheiden SearXNG-enginenamen om in de algemene categorie uit te schakelen.
+
+  disabled_engines_images:
+    name: Uitgeschakelde zoekmachines - Afbeeldingen
+    description: Komma-gescheiden SearXNG-enginenamen om in de afbeeldingscategorie uit te schakelen.
+
+  disabled_engines_videos:
+    name: Uitgeschakelde zoekmachines - Video's
+    description: Komma-gescheiden SearXNG-enginenamen om in de videocategorie uit te schakelen.
+
+  disabled_engines_news:
+    name: Uitgeschakelde zoekmachines - Nieuws
+    description: Komma-gescheiden SearXNG-enginenamen om in de nieuwscategorie uit te schakelen.
+
+  disabled_engines_maps:
+    name: Uitgeschakelde zoekmachines - Kaarten
+    description: Komma-gescheiden SearXNG-enginenamen om in de kaartencategorie uit te schakelen.
+
+  disabled_engines_music:
+    name: Uitgeschakelde zoekmachines - Muziek
+    description: Komma-gescheiden SearXNG-enginenamen om in de muziekcategorie uit te schakelen.
+
+  disabled_engines_it:
+    name: Uitgeschakelde zoekmachines - IT
+    description: Komma-gescheiden SearXNG-enginenamen om in de IT-categorie uit te schakelen.
+
+  disabled_engines_science:
+    name: Uitgeschakelde zoekmachines - Wetenschap
+    description: Komma-gescheiden SearXNG-enginenamen om in de wetenschapscategorie uit te schakelen.
+
+  disabled_engines_files:
+    name: Uitgeschakelde zoekmachines - Bestanden
+    description: Komma-gescheiden SearXNG-enginenamen om in de bestandencategorie uit te schakelen.
+
+  disabled_engines_social_media:
+    name: Uitgeschakelde zoekmachines - Sociale media
+    description: Komma-gescheiden SearXNG-enginenamen om in de socialemediacategorie uit te schakelen.
+
+  disabled_engines:
+    name: Uitgeschakelde Zoekmachines
+    description: >
+      De hier vermelde zoekmachines zijn standaard uitgeschakeld voor gebruikers. 
+      Gebruikers kunnen ze inschakelen via de voorkeuren knop in de browser.
+      De hier vermelde zoekmachines mogen niet worden ingeschakeld bij optie zoekmachines, die onder deze optie staat.
+      De zoekmachine-opties worden op zijn vroegst in versie 1.4.0 afgeschaft.
+
+  engines:
+    name: Zoekmachines
+    description: >
+      Engines die hier niet staan maar wel worden gebruikt door searxng settings.yml, 
+      gebruiken default van searxng image.
+
+  engines.google:
+    name: Google
+
+  engines.bing:
+    name: Bing
+
+  engines.duckduckgo:
+    name: DuckDuckGo
+
+  engines.startpage:
+    name: Startpage
+
+  engines.qwant:
+    name: Qwant
+
+  engines.wikipedia:
+    name: Wikipedia
+
+  engines.github:
+    name: GitHub
+
+  engines.youtube:
+    name: YouTube
+
+  engines.reddit:
+    name: Reddit
+
+  engines.stackoverflow:
+    name: Stack Overflow
+
+  engines.wolframalpha:
+    name: WolframAlpha

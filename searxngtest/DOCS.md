@@ -1,0 +1,177 @@
+# SearXNG for Home Assistant
+
+This app installs SearXNG as a self-hosted search engine for Home Assistant OS or Supervised installations. It is designed to run directly on your host network, expose per-engine switches in the app configuration UI, and be reached through your own local domain names such as `searxng.lan` or `searxng.local` rather than through Home Assistant ingress.
+
+## What this app provides
+
+- Direct access at your Home Assistant host IP and port, without the usual Home Assistant ingress path.
+- Simple on/off toggles for individual search engines, Will be replaced with a configurable list of engines to be disabled.
+- A local, privacy-friendly alternative to public search services.
+- Compatibility with a custom DNS setup or reverse proxy for cleaner URLs.
+- Optional MQTT Discovery sensors for SearXNG statistics, Dependant on a MQTT Broker like `Mosquitto broker`.
+
+## Installation
+
+1. Add this repository URL to your Home Assistant app store:
+   `https://github.com/Rog294super/Home-Assistant-APP-Searxng`
+2. Open Home Assistant and go to **Settings → apps → app Store**.
+3. Use **Check for updates**, then look for **SearXNG** under **Local apps**.
+4. Install the app, configure the engine switches under **Configuration**, and then click **Start**.
+5. Open the **Log** tab to confirm that the generated `settings.yml` was created correctly.
+
+The first installation may take some time because the image is built on the device from the included Dockerfile.
+
+## Accessing SearXNG
+
+This app does not create hostnames for you. It runs on the host network, but you still need DNS or local name resolution to make names like `searxng.lan` or `searxng.local` point to your Home Assistant host.
+
+SearXNG has no built-in user authentication in this app. Anyone who can reach its web port can use the search interface and API. Do not forward this port from the internet. For remote access, put it behind a reverse proxy that enforces authentication and TLS.
+
+### Using AdGuard Home or equivalant as DNS
+
+If you already run AdGuard Home or equivalant, the easiest option is to add DNS rewrites:
+
+1. Open **AdGuard Home**.
+2. Go to **Filters → DNS rewrites**.
+3. Add a rewrite for `searxng.lan` pointing to your Home Assistant host LAN IP.
+4. Repeat for `searxng.local`.
+
+You can then browse to:
+
+- `http://searxng.lan:<PORT>/`
+- `http://searxng.local:<PORT>/`
+
+or use the built-in **Open Web UI** option from the app page.
+
+### Important note about `.local`
+
+Windows clients often treat `.local` as a reserved multicast name suffix and may try to resolve it via mDNS or LLMNR before consulting your DNS server. This can make `searxng.local` unreliable on some machines. If you run into issues, `searxng.lan` is usually the more dependable choice, Except edge will see `searxng.lan` as a search querry and won't go to the domain.
+
+For more background, see this article: [Why using .local as a domain name extension is a bad idea](https://community.veeam.com/blogs-and-podcasts-57/why-using-local-as-your-domain-name-extension-is-a-bad-idea-4828).
+
+## Port and URL notes
+
+The SearXNG container listens internally on port `18080`, and the app exposes that directly through the host network. Because of that, the URL usually includes a port unless you place it behind a reverse proxy.
+
+If you want a cleaner URL such as `http://searxng.lan/`, consider using a reverse proxy such as `Nginx Proxy manager` or Caddy and forward traffic to your Home Assistant host IP and the SearXNG port.
+
+## Configuring disabled search engines
+
+When you want a engine to be not enabled by default for clients, Enter the search engine name in the field and click ENTER.
+Don't forget to save the changes.
+For available engines check: `[Link](https://docs.searxng.org/user/configured_engines.html)`.
+
+## DEPRECATED Configuring search engines
+
+Each engine toggle in the app configuration must match the engine name used by SearXNG exactly. Some names contain spaces and are case-sensitive, so the value must be an exact match.
+
+Examples that are commonly safe to use include:
+
+- `google`
+- `bing`
+- `duckduckgo`
+- `wikipedia`
+- `github`
+- `youtube`
+- `reddit`
+- `stackoverflow`
+
+Names such as `startpage`, `qwant`, and `wolframalpha` should be double-checked before relying on them.
+
+Engines not named in config.yaml but used by searxng default settings.yml will use their default value.
+
+## Troubleshooting
+
+- If the app starts but the web UI is not reachable, check your firewall rules and confirm that the host network setup is working.
+- ⚠️ If you changed the port to something else then the standard 18080 the web UI button won't work correctly.⚠️
+- If `searxng.local` does not resolve reliably, switch to `searxng.lan`.
+- If an engine does not appear as expected, verify that its name in the configuration exactly matches the engine name in SearXNG.
+- If something looks wrong, review the app logs, which print the generated settings on every boot.
+
+## Home Assistant MQTT Discovery
+
+This app publishes SearXNG statistics through Home Assistant MQTT Discovery. MQTT Discovery is the only entity registration method in version 1.2.0. The MQTT broker must be reachable from the app container.
+
+### Enabling MQTT Discovery
+
+1. Install and configure the Mosquitto broker app with a user(searxng) and password.
+2. Make sure the MQTT integration is configured in Home Assistant.
+3. Install or restart SearXNG. When discovery is enabled, the monitor reads the broker host, port, username, and password from the optional Supervisor MQTT service requested by `mqtt:want`.
+4. Keep **Enable Stats Entities** and **Enable Metrics Endpoint** enabled.
+
+No MQTT username, password, host, or port can be entered in the SearXNG app configuration. These values are supplied exclusively by the HAOS MQTT service. The default Discovery prefix is `homeassistant` and the state prefix is `searxng`.
+
+The statistics monitor uses the authenticated metrics endpoint. Keep **Enable
+metrics endpoint** enabled to receive stats entities. If metrics are disabled,
+the app keeps SearXNG running and skips the statistics monitor until metrics
+are enabled again. The app stores
+the metrics password separately from SearXNG's `server.secret_key`; it is
+generated automatically and is not shown in the app configuration.
+
+Metrics can be disabled with **Enable metrics endpoint** even when stats
+entities remain enabled. Those entities will not update until metrics are
+enabled again; the search service remains available.
+
+### Available Entities
+
+Once enabled and connected to the broker, the following entities will be automatically created in Home Assistant:
+
+- `sensor.searxng_requests` - Total number of search requests
+- `sensor.searxng_average_response_time` - Median per-engine response time, averaged across engines, in milliseconds. The entity ID is retained for compatibility.
+- `sensor.searxng_engine_count` - Number of active search engines
+- `sensor.searxng_engine_*` - Per-engine statistics (one sensor per enabled engine)
+
+### Using Entities in Home Assistant
+
+#### In Dashboards
+Display search statistics on your Home Assistant dashboard:
+```yaml
+type: entities
+entities:
+  - entity: sensor.searxng_requests
+  - entity: sensor.searxng_average_response_time
+```
+
+#### In Automations
+Create automations based on search activity:
+```yaml
+automation:
+  - alias: "Alert on high response times"
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.searxng_average_response_time
+      above: 500
+    action:
+      service: notify.mobile_app_phone
+      data:
+        message: "SearXNG response time is high: {{ states('sensor.searxng_average_response_time') }}ms"
+```
+
+#### In Templates
+Use SearXNG stats in templates:
+```yaml
+template:
+  - sensor:
+      - name: "Search Activity Status"
+        state: >
+          {% if states('sensor.searxng_requests') | int > 100 %}
+            High Activity
+          {% elif states('sensor.searxng_requests') | int > 50 %}
+            Medium Activity
+          {% else %}
+            Low Activity
+          {% endif %}
+```
+
+### Disabling MQTT Discovery
+
+To disable the monitor, set **Enable Stats Entities** to `off` and restart the app. MQTT Discovery is enabled automatically whenever the statistics monitor is enabled. Existing MQTT entities remain in Home Assistant until their discovery entries are removed manually.
+
+The entity monitor process will not start if stats entities or MQTT Discovery are disabled, saving system resources.
+
+### Troubleshooting Entity Registration
+
+- **Entities not appearing**: Check the app logs for broker connection errors and confirm that the MQTT integration uses the same discovery prefix.
+- **Update delays**: Entities are refreshed every 60 seconds. This is the monitor polling interval; dashboard and Recorder refresh behavior is controlled by Home Assistant.
+- **Missing engine entities**: Only engines that are enabled in the app configuration will have corresponding entities.
+- **Broker unavailable**: The monitor keeps retrying through Paho's network loop. Entities show unavailable while the monitor is disconnected because the MQTT Last Will publishes `offline`.
