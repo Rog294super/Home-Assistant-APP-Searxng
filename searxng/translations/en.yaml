@@ -34,8 +34,7 @@ configuration:
 
   enable_metrics:
     name: Enable metrics endpoint
-    description: Enable the authenticated metrics endpoint used by statistics entities.
-
+    description: Enable the authenticated metrics endpoint required by stats entities.
   enable_stats_entities:
     name: Enable entity stats.
     description: Enable this for sensors with stats about the searxng app.
@@ -46,65 +45,120 @@ configuration:
 
   mqtt_discovery_prefix:
     name: MQTT Discovery prefix
-    description: Home Assistant MQTT Discovery prefix, normally homeassistant.
+    description: >
+      Topic prefix using letters, numbers, underscore, dash, or slash.
 
   mqtt_base_topic:
     name: MQTT state topic prefix
-    description: Prefix for SearXNG state, attributes, and availability topics.
-
+    description: >
+      Prefix using letters, numbers, underscore, dash, or slash for SearXNG topics.
   disabled_engines_general:
     name: Disabled engines - General
-    description: Comma-separated SearXNG engine names to disable in the general category.
+    description: >
+      Comma-separated SearXNG engine names to disable by default in the general
+      category. Valid names: searchmysite, wiby, openlibrary, currency, dictzone,
+      lingva, mozhi, mymemory translated, bing, brave, duckduckgo, google,
+      google cse, mojeek, qwant, startpage, yahoo, seznam, naver, wikipedia,
+      wikibooks, wikiquote, wikisource, wikispecies, wikiversity, wikivoyage,
+      ayo, boardreader, crowdview, ddg definitions, duckduckgo web,
+      encyclosearch, fastbot, fireball, fynd, gabanza, gmx, infospace, mwmbl,
+      privacywall, resulthunter, searchtoday, tineye, tusksearch, vuhuv,
+      wikidata, wolframalpha, yacy, yandex, yep, zapmeta, searchch, bpb,
+      reloado, tagesschau, wikimini, abcnyheter, 360search, baidu, quark,
+      sogou.
 
   disabled_engines_images:
     name: Disabled engines - Images
-    description: Comma-separated SearXNG engine names to disable in the images category.
-
+    description: >
+      Comma-separated SearXNG engine names to disable by default in the image
+      category. Valid names: devicons, flaticon, lucide, material icons,
+      selfhst icons, uxwing, bing images, brave.images, google cse images,
+      google images, mojeek images, qwant images, startpage images, 1x, 500px,
+      adobe stock, artic, artstation, cara, duckduckgo images, findfiles images,
+      findthatmeme, flickr, frinkiac, giphy, imgur, ipernity, library of congress,
+      magnific, openverse, pexels, picjumbo, pinterest, pixabay images,
+      privacywall images, public domain image archive, resulthunter images,
+      shopify stock, sogou images, stocksnap, tusksearch images, unsplash,
+      vuhuv images, wikicommons.images, yacy images, yandex images, naver images,
+      baidu images, quark images.
   disabled_engines_videos:
     name: Disabled engines - Videos
-    description: Comma-separated SearXNG engine names to disable in the videos category.
-
+    description: >
+      Comma-separated SearXNG engine names to disable by default in the video
+      category. Valid names: bing videos, brave.videos, google videos, qwant videos,
+      360search videos, adobe stock video, bilibili, bitchute, dailymotion,
+      duckduckgo videos, findfiles videos, fireball videos, google play movies,
+      media.ccc.de, odysee, peertube, pixabay videos, privacywall videos, rumble,
+      sepiasearch, tusksearch videos, vimeo, vuhuv videos, wikicommons.videos,
+      youtube, mediathekviewweb, ina, niconico, naver videos, acfun, iqiyi,
+      sogou videos.
   disabled_engines_news:
     name: Disabled engines - News
-    description: Comma-separated SearXNG engine names to disable in the news category.
-
+    description: >
+      Comma-separated SearXNG engine names to disable by default in the news
+      category. Valid names: google news, bing news, brave news, duckduckgo news,
+      mojeek news, naver news, qwant news, startpage news, sogou wechat,
+      wikinews, wikimedia, reuters, tagesschau, ansa, il post, fireball news,
+      tusksearch news, wikimedia.
   disabled_engines_maps:
     name: Disabled engines - Maps
-    description: Comma-separated SearXNG engine names to disable in the maps category.
-
+    description: >
+      Comma-separated SearXNG engine names to disable by default in the maps
+      category. Valid names: apple maps, openstreetmap, photon.
   disabled_engines_music:
     name: Disabled engines - Music
-    description: Comma-separated SearXNG engine names to disable in the music category.
-
+    description: >
+      Comma-separated SearXNG engine names to disable by default in the music
+      category. Valid names: genius, radio browser, adobe stock audio, bandcamp,
+      deezer, findfiles music, mixcloud, soundcloud, wikicommons.audio,
+      yandex music, youtube.
   disabled_engines_it:
     name: Disabled engines - IT
-    description: Comma-separated SearXNG engine names to disable in the IT category.
-
+    description: >
+      Comma-separated SearXNG engine names to disable by default in the IT
+      category. Valid names: alpine linux packages, cachy os packages, crates.io,
+      docker hub, hex, hoogle, lib.rs, metacpan, npm, packagist, pkg.go.dev,
+      pub.dev, pypi, rubygems, voidlinux, askubuntu, caddy.community,
+      discuss.python, pi-hole.community, stackoverflow, superuser, bitbucket,
+      codeberg, gitea.com, github, gitlab, huggingface, huggingface datasets,
+      huggingface spaces, ollama, sourcehut, arch linux wiki, free software
+      directory, gentoo, nixos wiki, anaconda, habrahabr, hackernews,
+      lobste.rs, mankier, mdn, microsoft learn, national vulnerability database,
+      baidu kaifa.
   disabled_engines_science:
     name: Disabled engines - Science
-    description: Comma-separated SearXNG engine names to disable in the science category.
+    description: >
+      Comma-separated SearXNG engine names to disable by default in the science
+      category. Valid names: arxiv, crossref, google scholar, openalex, pubmed,
+      semantic scholar, wikispecies, openairedatasets, openairepublications, pdbe.
 
   disabled_engines_files:
     name: Disabled engines - Files
-    description: Comma-separated SearXNG engine names to disable in the files category.
+    description: >
+      Comma-separated SearXNG engine names to disable by default in the files
+      category. Valid names: apk_mirror, apple_app_store, fdroid,
+      google_play_apps.
 
   disabled_engines_social_media:
     name: Disabled engines - Social media
-    description: Comma-separated SearXNG engine names to disable in the social media category.
+    description: >
+      Comma-separated SearXNG engine names to disable by default in the social media
+      category. Valid names: 9gag, boardreader, lemmy comments, lemmy communities,
+      lemmy posts, lemmy users, mastodon hashtags, mastodon users, tootfinder.
 
   disabled_engines:
-    name: Disabled Engines
+    name: Disabled Engines (legacy)
     description: >
-      search engines here noted shall be disabled at default for users. 
-      Users can enable through preferences in the browser.
-      search engines noted here should not be enabled by Search Engines which is below this option.
-      Search engines options shall be deprecated at earliest on version 1.4.0
+      Deprecated comma-separated compatibility field. 
+      Use the per-category fields above when possible.
+      Will be removed version 1.4.0
 
   engines:
-    name: Search engines
+    name: Search engines (legacy)
     description: >
       Engines which are not noted here but are used in the searxng setting.yml, 
-      are using default set by Searxng image
+      are using default set by Searxng image.
+      Will be removed version 1.4.0
 
   engines.google:
     name: Google
