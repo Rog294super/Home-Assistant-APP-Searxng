@@ -2,8 +2,8 @@ configuration:
   base_url:
     name: Base URL
     description: >
-      The public URL where your SearXNG instance can be reached.
-      Example: https://searxng.local
+      Optional public URL where SearXNG is reachable, including the scheme.
+      Leave empty unless you need SearXNG to generate links using a fixed URL.
 
   instance_name:
     name: Instance name

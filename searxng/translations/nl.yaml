@@ -2,8 +2,8 @@ configuration:
   base_url:
     name: Basis-URL
     description: >
-      De openbare URL waarop je SearXNG-instantie bereikbaar is.
-      Voorbeeld: https://searxng.local
+      Optional public URL where SearXNG is reachable, including the scheme.
+      Leave empty unless you need SearXNG to generate links using a fixed URL.
 
   instance_name:
     name: Naam van de instantie
