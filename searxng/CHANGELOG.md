@@ -2,6 +2,15 @@
 
 All notable changes to this Home Assistant SearXNG App are documented here.
 
+## 1.3.1
+
+### Changed
+- Translations recarding base_url corrected for better explanations.
+- Update searxng to 2026.10.19 @[Dependabot](https://github.com/apps/dependabot) ([#1](https://github.com/Rog294super/Home-Assistant-APP-Searxng/pull/1))
+- Update searxng to 2026.10.29 @[Rog294super](https://github.com/Rog294super)
+- Update actions/setup-python to 7.1.0 @[Dependabot](https://github.com/apps/dependabot) ([#2](https://github.com/Rog294super/Home-Assistant-APP-Searxng/pull/2))
+
+
 ## 1.3.0
 
 ### Message DEV
