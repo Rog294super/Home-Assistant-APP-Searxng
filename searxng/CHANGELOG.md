@@ -2,6 +2,54 @@
 
 All notable changes to this Home Assistant SearXNG App are documented here.
 
+## 1.4.0
+
+### Breaking changes
+- The configurable runtime port was removed and the app now always uses port
+  `18080`. Users with a custom port must update bookmarks, reverse proxies, and
+  automations.
+- Automatic updates from 1.3.x are intentionally blocked so users can read this
+  entry before upgrading.
+- Removal of the deprecated `Disabled_engines` and `Engines` configurations.
+
+### Added
+- Added Home Assistant app metadata validation and a non-publishing BuildKit
+  image build for `amd64` and `aarch64` to CI.
+- Added an optional rate limiter backed by a private Valkey instance managed
+  by the app. No separate Valkey app or service configuration is required.
+- Added the `enable_json_api` option to allow the JSON search API to be
+  disabled while keeping the HTML interface available.
+- Added an MQTT TLS connection when the Supervisor MQTT service requests SSL.
+
+### Changed
+- Removed the configurable runtime port and fixed the app's internal port at
+  `18080` to keep the Home Assistant UI link, watchdog, and generated
+  settings consistent.
+- Strengthened `base_url` validation to reject credentials, query strings,
+  fragments, malformed hosts, and double-slash paths.
+- Updated the documentation and translations to match the current app
+  configuration and options.
+- Made MQTT engine state writes atomic and cleaned up removed discovery and
+  state topics by publishing empty retained messages.
+- Redacted invalid `base_url` values from startup warnings to prevent credentials
+  from appearing in app logs.
+- Enforced the fixed port `18080` in the startup script and statistics monitor,
+  including when old installations retain a removed `port` option.
+- Added an explicit `Disabled` autocomplete option and made it the default;
+  users can select a provider to enable suggestions.
+- Run the SearXNG web process as the unprivileged `searxng` user and restart
+  the statistics monitor if it exits unexpectedly.
+- Validate MQTT topic prefixes and sanitize the broker client ID derived from
+  the instance name.
+- Corrected response-time reporting to match SearXNG's average-time gauge.
+- Pinned the CI Python version; CI builds `amd64` and `aarch64` images.
+- Update searxng/searxng image from 2026-10-29 to 2026-11.1
+
+
+### Fixed
+- Fixed reproducible dependency installation by pinning the Python dependency
+  hashes used by CI and the image build.
+
 ## 1.3.1
 
 ### Changed
@@ -10,7 +58,6 @@ All notable changes to this Home Assistant SearXNG App are documented here.
 - Update searxng to 2026.10.19 @[Dependabot](https://github.com/apps/dependabot) ([#1](https://github.com/Rog294super/Home-Assistant-APP-Searxng/pull/1))
 - Update searxng to 2026.10.29 @[Rog294super](https://github.com/Rog294super)
 - Update actions/setup-python to 7.1.0 @[Dependabot](https://github.com/apps/dependabot) ([#2](https://github.com/Rog294super/Home-Assistant-APP-Searxng/pull/2))
-
 
 ## 1.3.0
 
@@ -21,8 +68,8 @@ All notable changes to this Home Assistant SearXNG App are documented here.
   If there is no next big update but enough small updates, To the level that the app will reach V1.4.0 because incrementations, it will also be removed.
   If the removal happens earlier this will possibly be announced one update before.
 **LEGACY DISABLED_ENGINES**: With the addition of seperate category disabled engines, The following
-    configuration `disabled_engines` will be removed at the same time as `engines`.
-    Save your disabled engines in the specific category for the engines.
+  configuration `disabled_engines` will be removed at the same time as `engines`.
+  Save your disabled engines in the specific category for the engines.
 
 ### Added
 - Extracted complete SearXNG settings generation from `run.sh` into a tested

@@ -1,6 +1,10 @@
 import unittest
 import json
+import io
+import re
 import tempfile
+import tomllib
+from contextlib import redirect_stdout
 from pathlib import Path
 
 import yaml
@@ -9,6 +13,24 @@ from generate_settings import generate_settings, write_settings
 
 
 class TestGenerateSettings(unittest.TestCase):
+    def test_app_config_disables_autocomplete_by_default_and_fixes_port(self):
+        config = yaml.safe_load(
+            Path(__file__).with_name("config.yaml").read_text(encoding="utf-8")
+        )
+        run_script = Path(__file__).with_name("run.sh").read_text(encoding="utf-8")
+
+        self.assertEqual(config["options"]["autocomplete"], "disabled")
+        self.assertIn("disabled", config["schema"]["autocomplete"])
+        self.assertNotIn("port", config["options"])
+        self.assertIn("PORT=18080", run_script)
+        self.assertFalse(config["options"]["enable_rate_limiter"])
+        self.assertEqual(config["schema"]["enable_rate_limiter"], "bool")
+        self.assertEqual(config["options"]["limiter_trusted_proxies"], "")
+        self.assertEqual(config["schema"]["limiter_trusted_proxies"], "str")
+        for key in ("mqtt_discovery_prefix", "mqtt_base_topic"):
+            self.assertTrue(config["schema"][key].startswith("match("))
+            self.assertRegex(config["options"][key], r"^[A-Za-z0-9_/-]+$")
+
     def test_settings_keep_search_options_and_use_upstream_engines(self):
         settings = generate_settings(
             {"autocomplete": "google", "safesearch": 2}, "secret", "metrics"
@@ -19,6 +41,36 @@ class TestGenerateSettings(unittest.TestCase):
         self.assertEqual(settings["search"]["safesearch"], 2)
         self.assertNotIn("engines", settings)
         self.assertEqual(yaml.safe_load(yaml.safe_dump(settings)), settings)
+
+    def test_legacy_port_option_does_not_change_server_port(self):
+        settings = generate_settings({"port": 12345}, "secret", "metrics")
+
+        self.assertEqual(settings["server"]["port"], 18080)
+
+    def test_invalid_base_url_credentials_are_not_logged(self):
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            generate_settings(
+                {"base_url": "https://admin:supersecret@example.com/"},
+                "secret",
+                "metrics",
+            )
+
+        self.assertNotIn("admin", output.getvalue())
+        self.assertNotIn("supersecret", output.getvalue())
+
+    def test_autocomplete_is_omitted_when_empty(self):
+        settings = generate_settings({"autocomplete": ""}, "secret", "metrics")
+
+        self.assertNotIn("autocomplete", settings["search"])
+
+    def test_autocomplete_disabled_option_is_omitted(self):
+        settings = generate_settings(
+            {"autocomplete": "disabled"}, "secret", "metrics"
+        )
+
+        self.assertNotIn("autocomplete", settings["search"])
 
     def test_write_settings_creates_one_search_mapping(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -33,10 +85,14 @@ class TestGenerateSettings(unittest.TestCase):
 
             contents = settings_path.read_text(encoding="utf-8")
             settings = yaml.safe_load(contents)
+            limiter = tomllib.loads(
+                (Path(directory) / "limiter.toml").read_text(encoding="utf-8")
+            )
 
         self.assertEqual(contents.count("\nsearch:"), 1)
         self.assertEqual(settings["search"]["formats"], ["html", "json"])
         self.assertEqual(settings["search"]["autocomplete"], "google")
+        self.assertEqual(limiter["botdetection"]["trusted_proxies"], [])
 
     def test_per_category_engines_are_deduplicated(self):
         settings = generate_settings(
@@ -51,6 +107,60 @@ class TestGenerateSettings(unittest.TestCase):
                 {"name": "google", "disabled": True},
                 {"name": "bing", "disabled": True},
             ],
+        )
+
+    def test_json_api_can_be_disabled(self):
+        settings = generate_settings({"enable_json_api": False}, "secret", "metrics")
+
+        self.assertEqual(settings["search"]["formats"], ["html"])
+
+    def test_trusted_proxies_are_normalized_and_deduplicated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            options_path = Path(directory) / "options.json"
+            settings_path = Path(directory) / "settings.yml"
+            options_path.write_text(
+                json.dumps({
+                    "enable_rate_limiter": True,
+                    "limiter_trusted_proxies": "192.168.1.5, 10.0.0.7/24, 192.168.1.5",
+                }),
+                encoding="utf-8",
+            )
+
+            write_settings(str(options_path), str(settings_path), "secret", "metrics")
+
+            limiter = tomllib.loads(
+                (Path(directory) / "limiter.toml").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(
+            limiter["botdetection"]["trusted_proxies"],
+            ["192.168.1.5/32", "10.0.0.0/24"],
+        )
+
+    def test_invalid_trusted_proxy_fails_settings_generation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            options_path = Path(directory) / "options.json"
+            settings_path = Path(directory) / "settings.yml"
+            options_path.write_text(
+                json.dumps({"limiter_trusted_proxies": "not-an-ip"}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "Invalid trusted proxy"):
+                write_settings(str(options_path), str(settings_path), "secret", "metrics")
+
+    def test_rate_limiter_uses_internal_valkey_only_when_enabled(self):
+        disabled = generate_settings({}, "secret", "metrics")
+        enabled = generate_settings(
+            {"enable_rate_limiter": True}, "secret", "metrics"
+        )
+
+        self.assertFalse(disabled["server"]["limiter"])
+        self.assertNotIn("valkey", disabled)
+        self.assertTrue(enabled["server"]["limiter"])
+        self.assertEqual(
+            enabled["valkey"]["url"],
+            "unix:///data/searxng-valkey/valkey.sock?db=0",
         )
 
     def test_legacy_engine_overrides_remain_supported(self):
