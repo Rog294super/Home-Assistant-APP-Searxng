@@ -2,27 +2,16 @@ configuration:
   base_url:
     name: Basis-URL
     description: >
-      Optional public URL where SearXNG is reachable, including the scheme.
-      Leave empty unless you need SearXNG to generate links using a fixed URL.
+      Optionele openbare URL waarop SearXNG bereikbaar is, inclusief het schema.
+      Laat leeg tenzij SearXNG links met een vast adres moet genereren.
 
   instance_name:
     name: Naam van de instantie
     description: Naam die door SearXNG wordt weergegeven.
 
-  port:
-    name: Poort
-    description: >
-      Externe poort waarop SearXNG beschikbaar is.
-      Laat een reverse proxy naar deze poort verwijzen.
-
   autocomplete:
     name: Autocompleteprovider
-    description: >
-      Provider die wordt gebruikt voor zoeksuggesties.
-      Beschikbare autocomplete-backends zijn:
-      "360search", "baidu", "brave", "dbpedia", "duckduckgo", "google",
-      "yandex", "mwmbl", "naver", "seznam", "sogou", "startpage",
-      "stract", "swisscows", "quark", "qwant" en "wikipedia".
+    description: Kies Uitgeschakeld om zoeksuggesties uit te zetten, of kies een provider.
 
   safesearch:
     name: SafeSearch
@@ -41,6 +30,20 @@ configuration:
   enable_stats_entities:
     name: inschakelen statistieken entiteit.
     description: Schakel dit in voor sensors met statistieken over de searxng app.
+
+  enable_json_api:
+    name: JSON-API inschakelen
+    description: Sta de SearXNG JSON-search API toe. Schakel dit uit wanneer alleen de HTML-interface beschikbaar moet zijn.
+
+  enable_rate_limiter:
+    name: Rate limiter inschakelen
+    description: Schakelt de rate limiter in en start een privé-Valkey-service.
+
+  limiter_trusted_proxies:
+    name: Vertrouwde proxy-IP's
+    description: >
+      Komma-gescheiden IP-adressen of CIDR-netwerken van reverse proxies vóór
+      SearXNG. Laat leeg wanneer je SearXNG rechtstreeks benadert.
 
   enable_mqtt_discovery:
     name: MQTT Discovery inschakelen
@@ -142,50 +145,3 @@ configuration:
       Komma-gescheiden SearXNG-engine-namen die standaard uitgeschakeld worden
       in de sociale media categorie. Geldige namen: 9gag, boardreader, lemmy comments, lemmy communities, 
       lemmy posts, lemmy users, mastodon hashtags, mastodon users, tootfinder.
-
-  disabled_engines:
-    name: Uitgeschakelde zoekmachines (legacy)
-    description: > 
-      Verouderd compatibiliteitsveld met komma-gescheiden namen. 
-      Gebruik bij voorkeur de per-categorievelden hierboven.
-      Wordt verwijderd in versie 1.4.0.
-
-  engines:
-    name: Zoekmachines (legacy)
-    description: >
-      Engines die hier niet staan maar wel worden gebruikt door searxng settings.yml, 
-      gebruiken default van searxng image.
-      Wordt verwijderd in versie 1.4.0.
-
-  engines.google:
-    name: Google
-
-  engines.bing:
-    name: Bing
-
-  engines.duckduckgo:
-    name: DuckDuckGo
-
-  engines.startpage:
-    name: Startpage
-
-  engines.qwant:
-    name: Qwant
-
-  engines.wikipedia:
-    name: Wikipedia
-
-  engines.github:
-    name: GitHub
-
-  engines.youtube:
-    name: YouTube
-
-  engines.reddit:
-    name: Reddit
-
-  engines.stackoverflow:
-    name: Stack Overflow
-
-  engines.wolframalpha:
-    name: WolframAlpha

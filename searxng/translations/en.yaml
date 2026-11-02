@@ -8,21 +8,10 @@ configuration:
   instance_name:
     name: Instance name
     description: Name displayed by SearXNG.
-  
-  port: 
-    name: Port
-    description: >
-      External port SearXNG, 
-      Point reverse proxy to this port.
-  
+
   autocomplete:
     name: Autocomplete provider
-    description: > 
-      Provider used for search suggestions.
-      Existing autocomplete backends: 
-      "360search", "baidu", "brave", "dbpedia", "duckduckgo", "google", 
-      "yandex","mwmbl", "naver", "seznam", "sogou", "startpage", 
-      "stract", "swisscows", "quark", "qwant", "wikipedia"
+    description: Select Disabled to turn off search suggestions, or choose a provider.
   
   safesearch:
     name: SafeSearch
@@ -35,9 +24,24 @@ configuration:
   enable_metrics:
     name: Enable metrics endpoint
     description: Enable the authenticated metrics endpoint required by stats entities.
+
   enable_stats_entities:
     name: Enable entity stats.
     description: Enable this for sensors with stats about the searxng app.
+
+  enable_json_api:
+    name: Enable JSON API
+    description: Allow the SearXNG JSON search API. Disable this when only the HTML interface should be exposed.
+
+  enable_rate_limiter:
+    name: Enable Rate limiter
+    description: Enables the rate limiter and starts a private Valkey service.
+
+  limiter_trusted_proxies:
+    name: Trusted proxy IPs
+    description: >
+      Comma-separated IP addresses or CIDR ranges of reverse proxies in front
+      of SearXNG. Leave empty when accessing SearXNG directly.
 
   enable_mqtt_discovery:
     name: Enable MQTT Discovery
@@ -52,6 +56,7 @@ configuration:
     name: MQTT state topic prefix
     description: >
       Prefix using letters, numbers, underscore, dash, or slash for SearXNG topics.
+
   disabled_engines_general:
     name: Disabled engines - General
     description: >
@@ -81,6 +86,7 @@ configuration:
       shopify stock, sogou images, stocksnap, tusksearch images, unsplash,
       vuhuv images, wikicommons.images, yacy images, yandex images, naver images,
       baidu images, quark images.
+
   disabled_engines_videos:
     name: Disabled engines - Videos
     description: >
@@ -92,6 +98,7 @@ configuration:
       sepiasearch, tusksearch videos, vimeo, vuhuv videos, wikicommons.videos,
       youtube, mediathekviewweb, ina, niconico, naver videos, acfun, iqiyi,
       sogou videos.
+
   disabled_engines_news:
     name: Disabled engines - News
     description: >
@@ -100,11 +107,13 @@ configuration:
       mojeek news, naver news, qwant news, startpage news, sogou wechat,
       wikinews, wikimedia, reuters, tagesschau, ansa, il post, fireball news,
       tusksearch news, wikimedia.
+
   disabled_engines_maps:
     name: Disabled engines - Maps
     description: >
       Comma-separated SearXNG engine names to disable by default in the maps
       category. Valid names: apple maps, openstreetmap, photon.
+
   disabled_engines_music:
     name: Disabled engines - Music
     description: >
@@ -112,6 +121,7 @@ configuration:
       category. Valid names: genius, radio browser, adobe stock audio, bandcamp,
       deezer, findfiles music, mixcloud, soundcloud, wikicommons.audio,
       yandex music, youtube.
+
   disabled_engines_it:
     name: Disabled engines - IT
     description: >
@@ -125,6 +135,7 @@ configuration:
       directory, gentoo, nixos wiki, anaconda, habrahabr, hackernews,
       lobste.rs, mankier, mdn, microsoft learn, national vulnerability database,
       baidu kaifa.
+
   disabled_engines_science:
     name: Disabled engines - Science
     description: >
@@ -145,50 +156,3 @@ configuration:
       Comma-separated SearXNG engine names to disable by default in the social media
       category. Valid names: 9gag, boardreader, lemmy comments, lemmy communities,
       lemmy posts, lemmy users, mastodon hashtags, mastodon users, tootfinder.
-
-  disabled_engines:
-    name: Disabled Engines (legacy)
-    description: >
-      Deprecated comma-separated compatibility field. 
-      Use the per-category fields above when possible.
-      Will be removed version 1.4.0
-
-  engines:
-    name: Search engines (legacy)
-    description: >
-      Engines which are not noted here but are used in the searxng setting.yml, 
-      are using default set by Searxng image.
-      Will be removed version 1.4.0
-
-  engines.google:
-    name: Google
-
-  engines.bing:
-    name: Bing
-
-  engines.duckduckgo:
-    name: DuckDuckGo
-
-  engines.startpage:
-    name: Startpage
-
-  engines.qwant:
-    name: Qwant
-
-  engines.wikipedia:
-    name: Wikipedia
-  
-  engines.github:
-    name: GitHub
-
-  engines.youtube:
-    name: YouTube
-
-  engines.reddit:
-    name: Reddit
-
-  engines.stackoverflow:
-    name: Stack Overflow
-
-  engines.wolframalpha:
-    name: WolframAlpha
