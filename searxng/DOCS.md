@@ -19,7 +19,6 @@ This app installs SearXNG as a self-hosted search engine for Home Assistant OS o
 4. Install the app, configure its options, and then click **Start**.
 5. Open the **Log** tab to confirm that the generated `settings.yml` was created correctly.
 
-The first installation may take some time because the image is built on the device from the included Dockerfile.
 
 ## Accessing SearXNG
 
@@ -55,9 +54,17 @@ The app listens on the fixed internal port `18080`. Home Assistant uses the host
 
 If you want a cleaner URL such as `http://searxng.lan/`, consider using a reverse proxy such as Nginx Proxy Manager or Caddy and forward traffic to your Home Assistant host IP on port `18080`.
 
-## JSON search API
+The **Contact URL** setting identifies a public support page for this instance.
+Some upstream engines require it during startup. The default points to this
+app's issue tracker; you can replace it with your own support or contact page.
 
-The app enables both the HTML interface and JSON search API by default. Disable **Enable JSON API** when the service should expose only the HTML interface. The generated SearXNG settings are updated immediately when the option changes and the app is restarted.
+## Search API formats
+
+The app serves HTML results by default. JSON, CSV, and RSS search formats are
+disabled by default because the app may be reachable from the WAN. Enable only
+the formats you need with **Enable JSON search format**, **Enable CSV search
+format**, or **Enable RSS search format**. The generated SearXNG settings are
+updated when an option changes and the app restarts.
 
 ## Rate limiting
 
@@ -88,7 +95,7 @@ Autocomplete is disabled by default. Select **Disabled** to turn it off, or choo
 
 Use the `disabled_engines_<category>` options to disable engines by default in a category. Available categories are `general`, `images`, `videos`, `news`, `maps`, `music`, `it`, `science`, `files`, and `social_media`. Enter exact SearXNG engine names as a comma-separated list, for example `google, bing` in `disabled_engines_general`. Engine names can contain spaces and may be case-sensitive; use the names from the [SearXNG engine list](https://docs.searxng.org/user/configured_engines.html).
 
-Engines not listed in these options keep their upstream SearXNG defaults. The legacy `disabled_engines` list and `engines` switch map remain available for compatibility, but are planned for removal in version `1.4.0`. Move any legacy settings to the per-category `disabled_engines_<category>` options before upgrading to that version. If at least one per-category list is non-empty, it takes precedence over both legacy options.
+Engines not listed in these options keep their upstream SearXNG defaults. The legacy `disabled_engines` list and `engines` switch map remain supported for existing installations. New configurations should use the per-category `disabled_engines_<category>` options. If at least one per-category list is non-empty, it takes precedence over both legacy options.
 
 ## Troubleshooting
 
