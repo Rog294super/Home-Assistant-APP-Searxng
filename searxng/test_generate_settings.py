@@ -25,6 +25,9 @@ class TestGenerateSettings(unittest.TestCase):
         self.assertIn("PORT=18080", run_script)
         self.assertFalse(config["options"]["enable_rate_limiter"])
         self.assertEqual(config["schema"]["enable_rate_limiter"], "bool")
+        for key in ("enable_json_api", "enable_csv_api", "enable_rss_api"):
+            self.assertFalse(config["options"][key])
+            self.assertEqual(config["schema"][key], "bool")
         self.assertEqual(config["options"]["limiter_trusted_proxies"], "")
         self.assertEqual(config["schema"]["limiter_trusted_proxies"], "str")
         for key in ("mqtt_discovery_prefix", "mqtt_base_topic"):
@@ -33,14 +36,35 @@ class TestGenerateSettings(unittest.TestCase):
 
     def test_settings_keep_search_options_and_use_upstream_engines(self):
         settings = generate_settings(
-            {"autocomplete": "google", "safesearch": 2}, "secret", "metrics"
+            {
+                "autocomplete": "google",
+                "safesearch": 2,
+                "enable_json_api": True,
+                "enable_csv_api": True,
+                "enable_rss_api": True,
+            },
+            "secret",
+            "metrics",
         )
 
-        self.assertEqual(settings["search"]["formats"], ["html", "json"])
+        self.assertEqual(settings["search"]["formats"], ["html", "json", "csv", "rss"])
         self.assertEqual(settings["search"]["autocomplete"], "google")
         self.assertEqual(settings["search"]["safesearch"], 2)
         self.assertNotIn("engines", settings)
         self.assertEqual(yaml.safe_load(yaml.safe_dump(settings)), settings)
+        self.assertEqual(
+            settings["general"]["contact_url"],
+            "https://github.com/Rog294super/Home-Assistant-APP-Searxng/issues",
+        )
+
+    def test_custom_contact_url_is_written_to_general_settings(self):
+        settings = generate_settings(
+            {"contact_url": "https://example.com/contact"}, "secret", "metrics"
+        )
+
+        self.assertEqual(
+            settings["general"]["contact_url"], "https://example.com/contact"
+        )
 
     def test_legacy_port_option_does_not_change_server_port(self):
         settings = generate_settings({"port": 12345}, "secret", "metrics")
@@ -72,6 +96,18 @@ class TestGenerateSettings(unittest.TestCase):
 
         self.assertNotIn("autocomplete", settings["search"])
 
+    def test_search_api_formats_are_disabled_by_default(self):
+        settings = generate_settings({}, "secret", "metrics")
+
+        self.assertEqual(settings["search"]["formats"], ["html"])
+
+    def test_csv_and_rss_can_be_enabled_without_json(self):
+        settings = generate_settings(
+            {"enable_csv_api": True, "enable_rss_api": True}, "secret", "metrics"
+        )
+
+        self.assertEqual(settings["search"]["formats"], ["html", "csv", "rss"])
+
     def test_write_settings_creates_one_search_mapping(self):
         with tempfile.TemporaryDirectory() as directory:
             options_path = Path(directory) / "options.json"
@@ -90,7 +126,7 @@ class TestGenerateSettings(unittest.TestCase):
             )
 
         self.assertEqual(contents.count("\nsearch:"), 1)
-        self.assertEqual(settings["search"]["formats"], ["html", "json"])
+        self.assertEqual(settings["search"]["formats"], ["html"])
         self.assertEqual(settings["search"]["autocomplete"], "google")
         self.assertEqual(limiter["botdetection"]["trusted_proxies"], [])
 
@@ -147,6 +183,18 @@ class TestGenerateSettings(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(ValueError, "Invalid trusted proxy"):
+                write_settings(str(options_path), str(settings_path), "secret", "metrics")
+
+    def test_unrestricted_trusted_proxy_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            options_path = Path(directory) / "options.json"
+            settings_path = Path(directory) / "settings.yml"
+            options_path.write_text(
+                json.dumps({"limiter_trusted_proxies": "0.0.0.0/0, ::/0"}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "prefix length 0"):
                 write_settings(str(options_path), str(settings_path), "secret", "metrics")
 
     def test_rate_limiter_uses_internal_valkey_only_when_enabled(self):

@@ -52,6 +52,11 @@ def parse_trusted_proxies(values: Any) -> list[str]:
             raise ValueError(
                 f"Invalid trusted proxy {candidate!r}; use an IP address or CIDR network"
             ) from error
+        network = ipaddress.ip_network(candidate, strict=False)
+        if network.prefixlen == 0:
+            raise ValueError(
+                f"Invalid trusted proxy {candidate!r}; prefix length 0 is too broad"
+            )
         if proxy_network not in proxies:
             proxies.append(proxy_network)
     return proxies
@@ -86,6 +91,8 @@ def generate_settings(
         "use_default_settings": True,
         "general": {
             "instance_name": options.get("instance_name") or "SearXNG",
+            "contact_url": options.get("contact_url")
+            or "https://github.com/Rog294super/Home-Assistant-APP-Searxng/issues",
             "enable_metrics": bool(options.get("enable_metrics", True)),
             "open_metrics": metrics_secret,
         },
@@ -98,10 +105,17 @@ def generate_settings(
         },
         "search": {
             "safesearch": int(options.get("safesearch", 0)),
-            # Keep HTML available; this option controls whether JSON is also exposed.
-            "formats": ["html"] if not bool(options.get("enable_json_api", True)) else ["html", "json"],
+            "formats": ["html"],
         },
     }
+
+    for option_name, output_format in (
+        ("enable_json_api", "json"),
+        ("enable_csv_api", "csv"),
+        ("enable_rss_api", "rss"),
+    ):
+        if bool(options.get(option_name, False)):
+            settings["search"]["formats"].append(output_format)
 
     if settings["server"]["limiter"]:
         settings["valkey"] = {
