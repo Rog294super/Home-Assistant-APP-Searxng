@@ -68,16 +68,53 @@ class TestMonitor(unittest.TestCase):
             f"searxng-{'x' * 15}",
         )
 
+    def test_monitor_options_copy_excludes_unneeded_app_options(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "options.json"
+            destination = Path(directory) / "monitor-options.json"
+            source.write_text(
+                json.dumps({
+                    "enable_metrics": True,
+                    "enable_stats_entities": True,
+                    "instance_name": "Private instance",
+                    "enable_mqtt_discovery": True,
+                    "mqtt_discovery_prefix": "homeassistant",
+                    "mqtt_base_topic": "searxng",
+                    "base_url": "https://private.example/",
+                    "limiter_trusted_proxies": "192.168.1.1",
+                }),
+                encoding="utf-8",
+            )
+
+            monitor_module.write_monitor_options(str(source), str(destination))
+
+            self.assertEqual(
+                json.loads(destination.read_text(encoding="utf-8")),
+                {
+                    "enable_metrics": True,
+                    "enable_stats_entities": True,
+                    "instance_name": "Private instance",
+                    "enable_mqtt_discovery": True,
+                    "mqtt_discovery_prefix": "homeassistant",
+                    "mqtt_base_topic": "searxng",
+                },
+            )
+
     def test_startup_drops_server_privileges_and_supervises_monitor(self):
         run_script = Path(__file__).with_name("run.sh").read_text(encoding="utf-8")
 
         self.assertIn("chown searxng:searxng \"$SETTINGS_FILE\"", run_script)
-        self.assertIn("os.setgroups([977]); os.setgid(977); os.setuid(977)", run_script)
+        self.assertIn("pwd.getpwnam(\"searxng\")", run_script)
+        self.assertIn("run_monitor_as_searxng", run_script)
+        self.assertIn("write_monitor_options", run_script)
+        self.assertIn('chmod 600 "$MONITOR_OPTIONS_FILE"', run_script)
         self.assertIn("supervise_monitor()", run_script)
         self.assertIn("MONITOR_CHILD_PID", run_script)
         self.assertIn("start_valkey()", run_script)
         self.assertIn("VALKEY_PID", run_script)
         self.assertIn("unixsocket", run_script)
+        self.assertIn("--appendonly no", run_script)
+        self.assertIn("^[0-9a-fA-F]{64}$", run_script)
 
     def test_legacy_port_option_does_not_change_metrics_port(self):
         with tempfile.TemporaryDirectory() as directory:

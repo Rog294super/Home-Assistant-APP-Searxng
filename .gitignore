@@ -13,6 +13,8 @@ logs/
 
 # Environment variables
 .env
+.env.*
+*.pem
 
 # Docker volumes
 db-data/
@@ -26,3 +28,4 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+searxng.zip

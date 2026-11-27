@@ -40,18 +40,40 @@ VALKEY_PID=""
 
 if [ -f "$SECRET_FILE" ]; then
     SECRET_KEY=$(cat "$SECRET_FILE")
+    if ! printf '%s' "$SECRET_KEY" | grep -Eq '^[0-9a-fA-F]{64}$'; then
+        echo "[searxng-app] WARNING: Replacing invalid secret_key file"
+        SECRET_KEY=$(head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1)
+        SECRET_TMP="$SECRET_FILE.tmp"
+        printf '%s\n' "$SECRET_KEY" > "$SECRET_TMP"
+        mv -f "$SECRET_TMP" "$SECRET_FILE"
+    fi
 else
     # Hash random bytes to create a fixed-length key without storing raw entropy.
     SECRET_KEY=$(head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1)
-    echo "$SECRET_KEY" > "$SECRET_FILE"
+    SECRET_TMP="$SECRET_FILE.tmp"
+    printf '%s\n' "$SECRET_KEY" > "$SECRET_TMP"
+    mv -f "$SECRET_TMP" "$SECRET_FILE"
     echo "[searxng-app] Generated and stored a new secret_key"
 fi
 
-if [ ! -f "$METRICS_SECRET_FILE" ]; then
-    head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1 > "$METRICS_SECRET_FILE"
+if [ -f "$METRICS_SECRET_FILE" ]; then
+    METRICS_SECRET=$(cat "$METRICS_SECRET_FILE")
+    if ! printf '%s' "$METRICS_SECRET" | grep -Eq '^[0-9a-fA-F]{64}$'; then
+        METRICS_SECRET=$(head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1)
+        METRICS_TMP="$METRICS_SECRET_FILE.tmp"
+        printf '%s\n' "$METRICS_SECRET" > "$METRICS_TMP"
+        mv -f "$METRICS_TMP" "$METRICS_SECRET_FILE"
+        echo "[searxng-app] Replaced invalid metrics password"
+    fi
+else
+    METRICS_SECRET=$(head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1)
+    METRICS_TMP="$METRICS_SECRET_FILE.tmp"
+    printf '%s\n' "$METRICS_SECRET" > "$METRICS_TMP"
+    mv -f "$METRICS_TMP" "$METRICS_SECRET_FILE"
     echo "[searxng-app] Generated and stored a separate metrics password"
 fi
 chmod 600 "$SECRET_FILE" "$METRICS_SECRET_FILE"
+chown searxng:searxng "$METRICS_SECRET_FILE"
 
 # Settings generation contains only app options and stays independent from
 # MQTT service credentials, which the monitor retrieves directly.
@@ -84,12 +106,27 @@ if [ ! -x "$GRANIAN" ]; then
     GRANIAN="granian"
 fi
 
+SEARXNG_UID=$( "$PYTHON" -c 'import pwd; print(pwd.getpwnam("searxng").pw_uid)' )
+SEARXNG_GID=$( "$PYTHON" -c 'import pwd; print(pwd.getpwnam("searxng").pw_gid)' )
+if [ -z "$SEARXNG_UID" ] || [ -z "$SEARXNG_GID" ]; then
+    echo "[searxng-app] ERROR: Could not resolve the searxng user"
+    exit 1
+fi
+
 echo "[searxng-app] Starting SearXNG on port $PORT via Granian"
 
 run_as_searxng() {
     # Drop supplementary groups, primary group, and uid before execing the server.
     SUPERVISOR_TOKEN='' "$PYTHON" -c \
-        'import os, sys; os.setgroups([977]); os.setgid(977); os.setuid(977); os.execv(sys.argv[1], sys.argv[1:])' \
+        'import os, sys; uid=int(sys.argv[1]); gid=int(sys.argv[2]); os.setgroups([gid]); os.setgid(gid); os.setuid(uid); os.execv(sys.argv[3], sys.argv[3:])' \
+        "$SEARXNG_UID" "$SEARXNG_GID" \
+        "$@"
+}
+
+run_monitor_as_searxng() {
+    SUPERVISOR_TOKEN="$SUPERVISOR_TOKEN" "$PYTHON" -c \
+        'import os, sys; uid=int(sys.argv[1]); gid=int(sys.argv[2]); os.setgroups([gid]); os.setgid(gid); os.setuid(uid); os.execv(sys.argv[3], sys.argv[3:])' \
+        "$SEARXNG_UID" "$SEARXNG_GID" \
         "$@"
 }
 
@@ -112,14 +149,14 @@ start_valkey() {
     # app's own data directory and is never exposed as a host TCP port.
     echo "[searxng-app] Starting private Valkey for the rate limiter"
     mkdir -p "$VALKEY_DATA_DIR"
-    chown -R 977:977 "$VALKEY_DATA_DIR"
+    chown -R "$SEARXNG_UID:$SEARXNG_GID" "$VALKEY_DATA_DIR"
     chmod 700 "$VALKEY_DATA_DIR"
     run_as_searxng /valkey-server.sh \
         --port 0 \
         --unixsocket "$VALKEY_SOCKET" \
         --unixsocketperm 700 \
         --dir "$VALKEY_DATA_DIR" \
-        --appendonly yes \
+        --appendonly no \
         --save "" \
         --maxmemory 64mb \
         --maxmemory-policy allkeys-lru \
@@ -157,7 +194,27 @@ MONITOR_PID=""
 if [ "$ENABLE_STATS_ENTITIES" = "true" ] && [ "$ENABLE_METRICS" = "true" ] && \
     [ "$ENABLE_MQTT_DISCOVERY" = "true" ] && \
     { command -v python3 >/dev/null 2>&1 || command -v "$PYTHON" >/dev/null 2>&1; }; then
-    export OPTIONS_FILE="$OPTIONS_FILE"
+    MONITOR_OPTIONS_FILE="/tmp/searxng-monitor-options.json"
+    "$PYTHON" -c \
+        'import sys; sys.path.insert(0, "/"); from monitor import write_monitor_options; write_monitor_options(sys.argv[1], sys.argv[2])' \
+        "$OPTIONS_FILE" "$MONITOR_OPTIONS_FILE"
+    chown "$SEARXNG_UID:$SEARXNG_GID" "$MONITOR_OPTIONS_FILE"
+    chmod 600 "$MONITOR_OPTIONS_FILE"
+    export OPTIONS_FILE="$MONITOR_OPTIONS_FILE"
+
+    MONITOR_STATE_DIR="/data/searxng-monitor"
+    MONITOR_STATE_FILE="$MONITOR_STATE_DIR/engine-state.json"
+    mkdir -p "$MONITOR_STATE_DIR"
+    chown "$SEARXNG_UID:$SEARXNG_GID" "$MONITOR_STATE_DIR"
+    chmod 700 "$MONITOR_STATE_DIR"
+    if [ -f /data/searxng_mqtt_engines.json ] && [ ! -e "$MONITOR_STATE_FILE" ]; then
+        mv /data/searxng_mqtt_engines.json "$MONITOR_STATE_FILE"
+    fi
+    if [ -f "$MONITOR_STATE_FILE" ]; then
+        chown "$SEARXNG_UID:$SEARXNG_GID" "$MONITOR_STATE_FILE"
+        chmod 600 "$MONITOR_STATE_FILE"
+    fi
+    export SEARXNG_MONITOR_STATE_PATH="$MONITOR_STATE_FILE"
     
     echo "[searxng-app] Starting entity monitor service"
     
@@ -180,7 +237,7 @@ if [ "$ENABLE_STATS_ENTITIES" = "true" ] && [ "$ENABLE_METRICS" = "true" ] && \
         trap stop_monitor_supervisor TERM INT
 
         while kill -0 "$GRANIAN_PID" 2>/dev/null; do
-            "$PYTHON_BIN" /monitor.py &
+            run_monitor_as_searxng "$PYTHON_BIN" /monitor.py &
             MONITOR_CHILD_PID=$!
             if wait "$MONITOR_CHILD_PID"; then
                 MONITOR_STATUS=0
@@ -233,6 +290,7 @@ shutdown() {
     if [ -n "$MONITOR_PID" ]; then
         wait "$MONITOR_PID" 2>/dev/null || true
     fi
+    exit 0
 }
 trap shutdown TERM INT
 

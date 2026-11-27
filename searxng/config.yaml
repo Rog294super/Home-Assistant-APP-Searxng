@@ -1,6 +1,6 @@
 name: "SearXNG"
-version: "1.4.0"
-image: ghcr.io/rog294super/{arch}-searxng
+version: "1.4.1"
+image: ghcr.io/rog294super/searxng
 slug: "searxng"
 description: "Privacy-respecting metasearch engine, reachable at your own LAN hostname instead of through HA ingress"
 url: "https://github.com/Rog294super/Home-Assistant-APP-Searxng"
@@ -32,6 +32,7 @@ breaking_versions:
 options:
   base_url: ""
   instance_name: "SearXNG"
+  contact_url: "https://github.com/Rog294super/Home-Assistant-APP-Searxng/issues"
 
   autocomplete: disabled
   safesearch: 0
@@ -44,8 +45,10 @@ options:
   # Home Assistant entity registration options
   enable_stats_entities: true
 
-  # Allow the JSON search API. Disable it when the app should expose only the HTML interface.
-  enable_json_api: true
+  # HTML stays available; each machine-readable search format is opt-in.
+  enable_json_api: false
+  enable_csv_api: false
+  enable_rss_api: false
 
   # Starts a private Valkey instance managed by this app when enabled.
   enable_rate_limiter: false
@@ -77,6 +80,7 @@ options:
 schema:
   base_url: str
   instance_name: str
+  contact_url: str
 
   autocomplete: list(disabled|360search|baidu|brave|dbpedia|duckduckgo|google|yandex|mwmbl|naver|seznam|sogou|startpage|stract|swisscows|quark|qwant|wikipedia)
   safesearch: int(0,2)
@@ -85,6 +89,8 @@ schema:
 
   enable_stats_entities: bool
   enable_json_api: bool
+  enable_csv_api: bool
+  enable_rss_api: bool
   enable_rate_limiter: bool
   limiter_trusted_proxies: str
   

@@ -60,7 +60,7 @@ Common configuration options include:
 * **Enable Metrics** — Enable the authenticated metrics endpoint used by the SearXNG statistics monitor (default: enabled)
 * **Enable Stats Entities** — Enable automatic registration of SearXNG statistics as Home Assistant entities (default: enabled)
 
-For detailed information about entity registration and usage examples, see the [DOCS.md](searxng/DOCS.md#home-assistant-entity-registration) file.
+For detailed information about entity registration and usage examples, see the [DOCS.md](searxng/DOCS.md#Using-Entities-in-Home-Assistant) file.
 
 ## Project Goals
 
