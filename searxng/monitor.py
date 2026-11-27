@@ -9,12 +9,14 @@ import logging
 import os
 import signal
 import sys
-from threading import Event
+import tempfile
+from threading import Event, RLock
 import time
 import urllib.request
 import urllib.error
 import base64
 import re
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Set
 
@@ -42,6 +44,35 @@ def make_mqtt_client_id(instance_name: str) -> str:
     return f"searxng-{slug}"
 
 
+def write_monitor_options(options_file: str, destination: str) -> None:
+    """Write only the non-secret app options needed by the unprivileged monitor."""
+    monitor_keys = (
+        "enable_metrics",
+        "enable_stats_entities",
+        "instance_name",
+        "enable_mqtt_discovery",
+        "mqtt_discovery_prefix",
+        "mqtt_base_topic",
+    )
+    with open(options_file, "r", encoding="utf-8") as source:
+        options = json.load(source)
+    if not isinstance(options, dict):
+        raise ValueError("App options must be a JSON object")
+    monitor_options = {key: options[key] for key in monitor_keys if key in options}
+    temporary_fd, temporary_path = tempfile.mkstemp(
+        dir=os.path.dirname(destination) or "."
+    )
+    try:
+        with os.fdopen(temporary_fd, "w", encoding="utf-8") as target:
+            json.dump(monitor_options, target)
+        os.replace(temporary_path, destination)
+    finally:
+        try:
+            os.unlink(temporary_path)
+        except FileNotFoundError:
+            pass
+
+
 class SearXNGMonitor:
     """Monitor SearXNG stats and expose them through MQTT Discovery."""
 
@@ -52,6 +83,7 @@ class SearXNGMonitor:
         self.options_file = options_file
         self.options = self._load_options()
         self.stop_event = Event()
+        self._process_stats_lock = RLock()
         self.mqtt_client = None
         self.mqtt_connected = False
         self.metrics_enabled = self.options.get("enable_metrics", True)
@@ -202,8 +234,16 @@ class SearXNGMonitor:
 
     def _load_published_engines(self) -> Set[str]:
         """Remember engine discovery topics so removed engines can be cleared."""
+        state_path = getattr(
+            self,
+            "_state_path",
+            os.environ.get(
+                "SEARXNG_MONITOR_STATE_PATH",
+                "/data/searxng_mqtt_engines.json",
+            ),
+        )
         try:
-            with open("/data/searxng_mqtt_engines.json") as state_file:
+            with open(state_path, encoding="utf-8") as state_file:
                 return set(json.load(state_file))
         except (OSError, TypeError, json.JSONDecodeError):
             # A missing or damaged cache is safe; the next publish refreshes it.
@@ -211,7 +251,14 @@ class SearXNGMonitor:
 
     def _save_published_engines(self) -> None:
         """Atomically save engine IDs so interrupted writes do not corrupt state."""
-        state_path = getattr(self, "_state_path", "/data/searxng_mqtt_engines.json")
+        state_path = getattr(
+            self,
+            "_state_path",
+            os.environ.get(
+                "SEARXNG_MONITOR_STATE_PATH",
+                "/data/searxng_mqtt_engines.json",
+            ),
+        )
         try:
             temp_path = f"{state_path}.tmp"
             with open(temp_path, "w", encoding="utf-8") as state_file:
@@ -262,7 +309,9 @@ class SearXNGMonitor:
         self.mqtt_connected = True
         self._publish_mqtt(self._availability_topic(), "online", retain=True, qos=1)
         if self._last_stats:
-            self._process_stats(self._last_stats)
+            lock = getattr(self, "_process_stats_lock", nullcontext())
+            with lock:
+                self._process_stats(self._last_stats)
         logger.info("Connected to MQTT broker")
 
     def _on_mqtt_disconnect(self, client: Any, userdata: Any, disconnect_flags: Any = None, reason_code: Any = None, properties: Any = None) -> None:
@@ -397,7 +446,9 @@ class SearXNGMonitor:
                 if stats:
                     self._last_stats = stats
                     if self.mqtt_connected:
-                        self._process_stats(stats)
+                        lock = getattr(self, "_process_stats_lock", nullcontext())
+                        with lock:
+                            self._process_stats(stats)
                     else:
                         logger.info("MQTT is not connected yet; waiting to publish stats")
                     consecutive_failures = 0
